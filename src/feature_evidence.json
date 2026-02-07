@@ -1,0 +1,119 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-add-a-new-landing-page-route-that-becomes-the-default-and-presents-a-dark-themed-high-energy-hero-section-with-a-daily-top-3-parlay-module-built-from-the-current-edge-data",
+      "featureTitle": "Add a new Landing Page route that becomes the default (\"/\") and presents a dark-themed, high-energy hero section with a \"Daily Top 3 Parlay\" module built from the current edge data.",
+      "files": [
+        "frontend/src/components/landing/DailyTopParlay.tsx",
+        "frontend/src/pages/LandingPage.tsx",
+        "frontend/src/routeTree.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "http-outcalls@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-18"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-introduce-a-dedicated-prop-board-screen-that-is-a-searchable-table-view-of-props-edges-showing-player-name-team-prop-category-points-rebounds-etc-and-a-value-bar-representing-the-ai-predicted-hit-percentage",
+      "featureTitle": "Introduce a dedicated \"Prop Board\" screen that is a searchable table view of props/edges showing: player name, team, prop category (Points, Rebounds, etc.), and a \"Value Bar\" representing the AI-predicted hit percentage.",
+      "files": [
+        "frontend/src/components/layout/AppLayout.tsx",
+        "frontend/src/components/props/PropBoardRowActions.tsx",
+        "frontend/src/components/props/ValueBar.tsx",
+        "frontend/src/pages/PropBoardPage.tsx",
+        "frontend/src/routeTree.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "http-outcalls@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-19"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-routing-and-top-navigation-so-the-landing-page-and-prop-board-are-both-accessible-while-keeping-existing-pages-parlay-builder-settings-about-prop-detail-functional",
+      "featureTitle": "Update routing and top navigation so the Landing Page (\"/\") and Prop Board are both accessible, while keeping existing pages (Parlay Builder, Settings, About, Prop Detail) functional.",
+      "files": [
+        "frontend/src/components/layout/AppLayout.tsx",
+        "frontend/src/pages/ParlayBuilderPage.tsx",
+        "frontend/src/pages/PropDetailPage.tsx",
+        "frontend/src/routeTree.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "http-outcalls@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-20"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-enhance-the-parlay-builder-to-support-bundling-2-6-picks-and-display-the-projected-combined-hit-rate-for-the-selected-parlay",
+      "featureTitle": "Enhance the Parlay Builder to support bundling 2–6 picks and display the projected combined hit-rate for the selected parlay.",
+      "files": [
+        "frontend/src/components/parlay/AddToParlayButton.tsx",
+        "frontend/src/lib/parlay/combinedHitRate.ts",
+        "frontend/src/pages/ParlayBuilderPage.tsx",
+        "frontend/src/state/parlay/ParlayProvider.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "http-outcalls@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-21"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-per-pick-show-logic-transparency-ui-dropdown-collapsible-wherever-picks-are-shown-at-minimum-prop-board-rows-and-parlay-builder-legs-optionally-also-on-prop-detail-that-explains-the-stats-behind-each-prediction-using-existing-verification-projection-edge-data",
+      "featureTitle": "Add a per-pick \"Show Logic\" transparency UI (dropdown/collapsible) wherever picks are shown (at minimum: Prop Board rows and Parlay Builder legs; optionally also on Prop Detail) that explains the stats behind each prediction using existing verification/projection/edge data.",
+      "files": [
+        "frontend/src/components/props/ShowLogic.tsx",
+        "frontend/src/pages/ParlayBuilderPage.tsx",
+        "frontend/src/pages/PropBoardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "http-outcalls@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-22"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

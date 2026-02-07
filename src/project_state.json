@@ -1,0 +1,255 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 7,
+  "summary": "Build Bobbypicks, a full-stack decentralized web application to identify high-value PrizePicks player prop parlays by comparing real-time betting lines with AI-driven statistical projections.",
+  "architectural_notes": [
+    "Data sources preference/update: use OpticOdds as the primary data source for sportsbook lines and related verification inputs (in addition to/possibly replacing The Odds API + DailyFantasyAPI.io mentioned in ingestion requirements).",
+    "Frontend UX direction: dark-themed, high-energy landing experience; Prop Board as primary searchable table UI with per-prop value visualization and transparency ('Show Logic') drilldowns."
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-create-the-bobbypicks-application-shell-with-core-navigation-and-pages-needed-to-discover-high-value-prizepicks-player-props-and-build-parlays-1-edge-board-all-flagged-props-2-prop-detail-verification-metrics-source-lines-3-parlay-builder-selected-legs-summary-4-settings-thresholds-refresh-controls-and-5-about-responsible-gambling-disclaimer-page",
+      "title": "Create the Bobbypicks application shell with core navigation and pages needed to discover high-value PrizePicks player props and build parlays: (1) Edge Board (all flagged props), (2) Prop Detail (verification metrics + source lines), (3) Parlay Builder (selected legs + summary), (4) Settings (thresholds + refresh controls), and (5) About/Responsible Gambling disclaimer page.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-automated-verification-for-every-flagged-edge-pick-by-attaching-a-the-player-s-last-5-game-performance-summary-and-b-defense-vs-position-dvp-ranking-and-mark-a-pick-as-high-confidence-only-when-verification-criteria-align-with-the-detected-line-discrepancy",
+      "title": "Add automated verification for every flagged edge pick by attaching (a) the player’s last 5 game performance summary and (b) Defense vs Position (DvP) ranking, and mark a pick as “High Confidence” only when verification criteria align with the detected line discrepancy.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-parlay-builder-user-flow-users-can-select-multiple-flagged-props-as-legs-review-each-leg-s-edge-projection-verification-and-export-a-shareable-summary-string-copy-to-clipboard-for-manual-entry-on-prizepicks",
+      "title": "Implement a Parlay Builder user flow: users can select multiple flagged props as legs, review each leg’s edge/projection/verification, and export a shareable summary string (copy-to-clipboard) for manual entry on PrizePicks.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-coherent-distinct-visual-theme-across-the-frontend-colors-typography-spacing-and-component-styling-appropriate-for-an-analytics-trading-dashboard-avoid-blue-purple-as-primary-colors",
+      "title": "Apply a coherent, distinct visual theme across the frontend (colors, typography, spacing, and component styling) appropriate for an analytics/trading dashboard; avoid blue/purple as primary colors.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-responsible-gambling-and-accuracy-disclaimers-throughout-the-ui-about-page-footer-clarifying-the-app-provides-informational-analytics-only-and-does-not-place-bets-or-guarantee-outcomes",
+      "title": "Add responsible-gambling and accuracy disclaimers throughout the UI (About page + footer), clarifying the app provides informational analytics only and does not place bets or guarantee outcomes.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-minimal-auth-admin-control-approach-using-internet-identity-to-restrict-api-key-configuration-actions-e-g-setting-provider-credentials-and-triggering-refresh-to-authenticated-admin-principals",
+      "title": "Add a minimal auth/admin control approach using Internet Identity to restrict API key/configuration actions (e.g., setting provider credentials and triggering refresh) to authenticated admin principals.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-frontend-data-fetching-via-react-query-for-edges-prop-detail-and-refresh-status-including-loading-error-states-and-a-manual-refresh-button-admin-only-that-triggers-backend-refresh",
+      "title": "Add frontend data fetching via React Query for edges, prop detail, and refresh status, including loading/error states and a manual refresh button (admin only) that triggers backend refresh.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-static-asset-rendering-for-generated-brand-images-logo-favicon-and-a-subtle-background-texture-by-placing-them-in-frontend-public-assets-generated-and-using-them-in-the-app-shell-header-metadata-without-routing-through-the-backend",
+      "title": "Add static asset rendering for generated brand images (logo, favicon, and a subtle background texture) by placing them in frontend/public/assets/generated and using them in the app shell (header + metadata) without routing through the backend.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-new-landing-page-route-that-becomes-the-default-and-presents-a-dark-themed-high-energy-hero-section-with-a-daily-top-3-parlay-module-built-from-the-current-edge-data",
+      "title": "Add a new Landing Page route that becomes the default (\"/\") and presents a dark-themed, high-energy hero section with a \"Daily Top 3 Parlay\" module built from the current edge data.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-introduce-a-dedicated-prop-board-screen-that-is-a-searchable-table-view-of-props-edges-showing-player-name-team-prop-category-points-rebounds-etc-and-a-value-bar-representing-the-ai-predicted-hit-percentage",
+      "title": "Introduce a dedicated \"Prop Board\" screen that is a searchable table view of props/edges showing: player name, team, prop category (Points, Rebounds, etc.), and a \"Value Bar\" representing the AI-predicted hit percentage.",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-routing-and-top-navigation-so-the-landing-page-and-prop-board-are-both-accessible-while-keeping-existing-pages-parlay-builder-settings-about-prop-detail-functional",
+      "title": "Update routing and top navigation so the Landing Page (\"/\") and Prop Board are both accessible, while keeping existing pages (Parlay Builder, Settings, About, Prop Detail) functional.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-enhance-the-parlay-builder-to-support-bundling-2-6-picks-and-display-the-projected-combined-hit-rate-for-the-selected-parlay",
+      "title": "Enhance the Parlay Builder to support bundling 2–6 picks and display the projected combined hit-rate for the selected parlay.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-per-pick-show-logic-transparency-ui-dropdown-collapsible-wherever-picks-are-shown-at-minimum-prop-board-rows-and-parlay-builder-legs-optionally-also-on-prop-detail-that-explains-the-stats-behind-each-prediction-using-existing-verification-projection-edge-data",
+      "title": "Add a per-pick \"Show Logic\" transparency UI (dropdown/collapsible) wherever picks are shown (at minimum: Prop Board rows and Parlay Builder legs; optionally also on Prop Detail) that explains the stats behind each prediction using existing verification/projection/edge data.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Create decentralized full-stack web app foundation for Bobbypicks",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Implement data ingestion pipeline for sportsbook lines (e.g., The Odds API) and PrizePicks/daily fantasy provider data",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Build AI/statistical projections system for player props",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Implement 'Edge' detection comparing PrizePicks lines vs sharp sportsbook consensus to flag discrepancies",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Add automated verification for flagged picks using Last 5 games and Defense vs Position metrics; label High Confidence when aligned",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Provide prop parlay discovery/builder experience based on identified edges",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Implement backend data models and storage for player props, lines, projections, edge calculations, and verification metrics, including stable persistence and query methods to support the Edge Board, Prop Detail, and Parlay Builder.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Add a backend “data ingestion pipeline” that can fetch and refresh (a) sharp sportsbook lines via The Odds API and (b) PrizePicks (or equivalent daily fantasy) lines via a daily fantasy data provider such as DailyFantasyAPI.io, with a manual refresh endpoint and a configurable refresh cadence.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Implement the “Edge” detection logic in the backend to flag players/props where the PrizePicks line differs significantly from a sharp sportsbook consensus, with a configurable threshold (e.g., PrizePicks 20.5 vs DraftKings consensus 22.5).",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Implement a deterministic statistical projection engine (AI-driven in the sense of model-based projections, not external LLMs) that generates per-prop projections from available historical inputs and stores projection outputs with timestamps.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Replace the current placeholder `importData()` implementation with a real admin-only ingestion pipeline that fetches (a) sharp sportsbook lines via The Odds API and (b) PrizePicks (daily fantasy) lines via a provider such as DailyFantasyAPI.io, using OpticOdds as the data source for the ingested lines where applicable.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Add admin-only configuration endpoints to store and retrieve provider configuration needed for ingestion, including at minimum API credentials/keys for The Odds API, DailyFantasyAPI.io, and OpticOdds.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "Implement the 'Edge' detection logic in the backend to flag a prop when the PrizePicks line is significantly different from the sharp sportsbook consensus, and store/update `EdgeCalculation` records for those props.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "Implement automated verification for each flagged edge by automatically pulling the player’s last-5-game performance summary and Defense-vs-Position (DvP) ranking from OpticOdds, storing the result as a `VerificationResult` for the associated prop.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Compute and persist a \"High Confidence\" verification score such that a pick is only marked high confidence when the last-5-game performance and DvP ranking align with the detected line discrepancy.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Add Landing Page with dark-themed high-energy hero section and a 'Daily Top 3 Parlay' feature",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Build a searchable Prop Board table showing player, team, prop category (Points/Rebounds/etc.), and an AI 'Value Bar' indicating predicted hit percentage",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Enhance Parlay Builder to allow bundling 2–6 picks and display projected combined hit-rate for the parlay",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-20",
+      "summary": "Add per-pick transparency UI: 'Show Logic' dropdown explaining the stats behind each prediction",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Bobbypicks",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

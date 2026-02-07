@@ -1,0 +1,121 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-07T04:18:22.659Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 5,
+    "implemented": 5,
+    "items": [
+      {
+        "id": "REQ-18",
+        "summary": "Add a new Landing Page route that becomes the default (\"/\") and presents a dark-themed, high-energy hero section with a \"Daily Top 3 Parlay\" module built from the current edge data.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/LandingPage.tsx",
+          "frontend/src/components/landing/DailyTopParlay.tsx",
+          "frontend/src/routeTree.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/LandingPage.tsx",
+          "frontend/src/components/landing/DailyTopParlay.tsx",
+          "frontend/src/routeTree.tsx"
+        ]
+      },
+      {
+        "id": "REQ-19",
+        "summary": "Introduce a dedicated \"Prop Board\" screen that is a searchable table view of props/edges showing: player name, team, prop category (Points, Rebounds, etc.), and a \"Value Bar\" representing the AI-predicted hit percentage.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/PropBoardPage.tsx",
+          "frontend/src/components/props/ValueBar.tsx",
+          "frontend/src/components/props/PropBoardRowActions.tsx",
+          "frontend/src/routeTree.tsx",
+          "frontend/src/components/layout/AppLayout.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/PropBoardPage.tsx",
+          "frontend/src/components/props/ValueBar.tsx",
+          "frontend/src/components/props/PropBoardRowActions.tsx",
+          "frontend/src/routeTree.tsx",
+          "frontend/src/components/layout/AppLayout.tsx"
+        ]
+      },
+      {
+        "id": "REQ-20",
+        "summary": "Update routing and top navigation so the Landing Page (\"/\") and Prop Board are both accessible, while keeping existing pages (Parlay Builder, Settings, About, Prop Detail) functional.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/routeTree.tsx",
+          "frontend/src/components/layout/AppLayout.tsx",
+          "frontend/src/pages/ParlayBuilderPage.tsx",
+          "frontend/src/pages/PropDetailPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/routeTree.tsx",
+          "frontend/src/components/layout/AppLayout.tsx",
+          "frontend/src/pages/ParlayBuilderPage.tsx",
+          "frontend/src/pages/PropDetailPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-21",
+        "summary": "Enhance the Parlay Builder to support bundling 2–6 picks and display the projected combined hit-rate for the selected parlay.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/state/parlay/ParlayProvider.tsx",
+          "frontend/src/components/parlay/AddToParlayButton.tsx",
+          "frontend/src/lib/parlay/combinedHitRate.ts",
+          "frontend/src/pages/ParlayBuilderPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/state/parlay/ParlayProvider.tsx",
+          "frontend/src/components/parlay/AddToParlayButton.tsx",
+          "frontend/src/lib/parlay/combinedHitRate.ts",
+          "frontend/src/pages/ParlayBuilderPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-22",
+        "summary": "Add a per-pick \"Show Logic\" transparency UI (dropdown/collapsible) wherever picks are shown (at minimum: Prop Board rows and Parlay Builder legs; optionally also on Prop Detail) that explains the stats behind each prediction using existing verification/projection/edge data.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/props/ShowLogic.tsx",
+          "frontend/src/pages/PropBoardPage.tsx",
+          "frontend/src/pages/ParlayBuilderPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/props/ShowLogic.tsx",
+          "frontend/src/pages/PropBoardPage.tsx",
+          "frontend/src/pages/ParlayBuilderPage.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/components/landing/DailyTopParlay.tsx",
+    "frontend/src/components/layout/AppLayout.tsx",
+    "frontend/src/components/parlay/AddToParlayButton.tsx",
+    "frontend/src/components/props/PropBoardRowActions.tsx",
+    "frontend/src/components/props/ShowLogic.tsx",
+    "frontend/src/components/props/ValueBar.tsx",
+    "frontend/src/lib/parlay/combinedHitRate.ts",
+    "frontend/src/pages/LandingPage.tsx",
+    "frontend/src/pages/ParlayBuilderPage.tsx",
+    "frontend/src/pages/PropBoardPage.tsx",
+    "frontend/src/pages/PropDetailPage.tsx",
+    "frontend/src/routeTree.tsx",
+    "frontend/src/state/parlay/ParlayProvider.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

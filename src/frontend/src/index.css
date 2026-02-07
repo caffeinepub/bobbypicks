@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --radius: 0.5rem;
+        --background: 0.145 0 0;
+        --foreground: 0.985 0 0;
+        --card: 0.205 0 0;
+        --card-foreground: 0.985 0 0;
+        --popover: 0.269 0 0;
+        --popover-foreground: 0.985 0 0;
+        --primary: 0.922 0 0;
+        --primary-foreground: 0.205 0 0;
+        --secondary: 0.269 0 0;
+        --secondary-foreground: 0.985 0 0;
+        --muted: 0.269 0 0;
+        --muted-foreground: 0.708 0 0;
+        --accent: 0.75 0.25 145;
+        --accent-foreground: 0.145 0 0;
+        --destructive: 0.65 0.25 25;
+        --destructive-foreground: 0.985 0 0;
+        --border: 1 0 0 / 10%;
+        --input: 1 0 0 / 15%;
+        --ring: 0.75 0.25 145;
+        --chart-1: 0.75 0.25 145;
+        --chart-2: 0.65 0.20 85;
+        --chart-3: 0.55 0.18 200;
+        --chart-4: 0.70 0.22 300;
+        --chart-5: 0.60 0.15 50;
+        --sidebar: 0.205 0 0;
+        --sidebar-foreground: 0.985 0 0;
+        --sidebar-primary: 0.75 0.25 145;
+        --sidebar-primary-foreground: 0.145 0 0;
+        --sidebar-accent: 0.269 0 0;
+        --sidebar-accent-foreground: 0.985 0 0;
+        --sidebar-border: 1 0 0 / 10%;
+        --sidebar-ring: 0.75 0.25 145;
+    }
+
+    .dark {
+        --background: 0.145 0 0;
+        --foreground: 0.985 0 0;
+        --card: 0.205 0 0;
+        --card-foreground: 0.985 0 0;
+        --popover: 0.269 0 0;
+        --popover-foreground: 0.985 0 0;
+        --primary: 0.922 0 0;
+        --primary-foreground: 0.205 0 0;
+        --secondary: 0.269 0 0;
+        --secondary-foreground: 0.985 0 0;
+        --muted: 0.269 0 0;
+        --muted-foreground: 0.708 0 0;
+        --accent: 0.75 0.25 145;
+        --accent-foreground: 0.145 0 0;
+        --destructive: 0.65 0.25 25;
+        --destructive-foreground: 0.985 0 0;
+        --border: 1 0 0 / 10%;
+        --input: 1 0 0 / 15%;
+        --ring: 0.75 0.25 145;
+        --chart-1: 0.75 0.25 145;
+        --chart-2: 0.65 0.20 85;
+        --chart-3: 0.55 0.18 200;
+        --chart-4: 0.70 0.22 300;
+        --chart-5: 0.60 0.15 50;
+        --sidebar: 0.205 0 0;
+        --sidebar-foreground: 0.985 0 0;
+        --sidebar-primary: 0.75 0.25 145;
+        --sidebar-primary-foreground: 0.145 0 0;
+        --sidebar-accent: 0.269 0 0;
+        --sidebar-accent-foreground: 0.985 0 0;
+        --sidebar-border: 1 0 0 / 10%;
+        --sidebar-ring: 0.75 0.25 145;
+    }
+
+    * {
+        @apply border-border;
+    }
+    
+    body {
+        @apply bg-background text-foreground;
+        background-image: url('/assets/generated/bobbypicks-bg-texture.dim_1024x1024.png');
+        background-repeat: repeat;
+        background-size: 256px 256px;
+        background-attachment: fixed;
+    }
+
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: oklch(var(--background) / 0.92);
+        z-index: -1;
+    }
+}
+

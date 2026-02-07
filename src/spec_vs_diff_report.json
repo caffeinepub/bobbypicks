@@ -1,0 +1,80 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-07T04:18:22.656Z",
+  "summary": "Most requested frontend features appear implemented: new Landing Page at \"/\" with a Daily Top 3 Parlay module, new searchable Prop Board table with Value Bar and actions, updated routing, parlay max-6 enforcement, combined hit-rate utility, and a reusable per-pick Show Logic component. However, some acceptance-criteria details are not clearly satisfied from the diff summary (notably graceful <3-pick messaging and certain UI displays), and there is evidence of unrequested admin/provider-key configuration work in Settings.",
+  "missing_requirements": [
+    {
+      "id": "REQ-18",
+      "requirement": "If fewer than 3 edge opportunities exist, the \"Daily Top 3 Parlay\" module degrades gracefully with a clear empty-state message in English.",
+      "reason": "LandingPage always slices to up to 3 picks, but DailyTopParlay only shows an empty-state when edges.length===0; no message is shown when 1–2 picks exist (i.e., fewer than 3).",
+      "evidence": [
+        "frontend/src/pages/LandingPage.tsx",
+        "frontend/src/components/landing/DailyTopParlay.tsx"
+      ]
+    },
+    {
+      "id": "REQ-20",
+      "requirement": "The existing Edge Board/prop discovery view remains accessible under a stable, clearly named route and is linked in the header navigation.",
+      "reason": "A stable route for the existing Edge Board is added as \"/board\", but the header navigation shown only links to \"/\" (Home), \"/props\" (Prop Board), \"/parlay\", \"/settings\", and \"/about\"—no link to \"/board\" is present.",
+      "evidence": [
+        "frontend/src/routeTree.tsx",
+        "frontend/src/components/layout/AppLayout.tsx"
+      ]
+    },
+    {
+      "id": "REQ-21",
+      "requirement": "When 2–6 legs are selected, the Parlay Builder displays a \"Projected combined hit-rate\" percentage (and does not show a misleading combined hit-rate when <2 legs).",
+      "reason": "A combined hit-rate calculator utility is added and invoked in ParlayBuilderPage, but the diff excerpt is truncated before any UI output that actually displays the \"Projected combined hit-rate\" value, so the display portion of the requirement is not verifiable from the provided diff summary.",
+      "evidence": [
+        "frontend/src/lib/parlay/combinedHitRate.ts",
+        "frontend/src/pages/ParlayBuilderPage.tsx"
+      ]
+    },
+    {
+      "id": "REQ-22",
+      "requirement": "Each pick displayed in the Prop Board table includes a \"Show Logic\" control that expands/collapses additional details.",
+      "reason": "PropBoardPage imports ShowLogic, but the diff excerpt is truncated before the table row rendering is fully shown; the presence of the control per row is therefore not verifiable from the provided diff summary.",
+      "evidence": [
+        "frontend/src/pages/PropBoardPage.tsx",
+        "frontend/src/components/props/ShowLogic.tsx"
+      ]
+    },
+    {
+      "id": "REQ-22",
+      "requirement": "Each leg displayed on the Parlay Builder page includes a \"Show Logic\" control that expands/collapses additional details.",
+      "reason": "ParlayBuilderPage imports ShowLogic and constructs a mock edge object, but the diff excerpt is truncated before confirming that <ShowLogic .../> is rendered for each leg.",
+      "evidence": [
+        "frontend/src/pages/ParlayBuilderPage.tsx",
+        "frontend/src/components/props/ShowLogic.tsx"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Admin-only API configuration form/provider key management added to Settings page.",
+      "reason": "The BuildRequest explicitly lists admin/provider configuration flows as non-goals, but the diff summary states Settings includes an \"admin-only API configuration form for provider keys\".",
+      "evidence": [
+        "frontend-file-summaries.txt (SettingsPage description)"
+      ]
+    }
+  ],
+  "confidence": 0.62,
+  "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/src/components/landing/DailyTopParlay.tsx",
+    "frontend/src/components/layout/AppLayout.tsx",
+    "frontend/src/components/parlay/AddToParlayButton.tsx",
+    "frontend/src/components/props/PropBoardRowActions.tsx",
+    "frontend/src/components/props/ShowLogic.tsx",
+    "frontend/src/components/props/ValueBar.tsx",
+    "frontend/src/lib/parlay/combinedHitRate.ts",
+    "frontend/src/pages/LandingPage.tsx",
+    "frontend/src/pages/ParlayBuilderPage.tsx",
+    "frontend/src/pages/PropBoardPage.tsx",
+    "frontend/src/pages/PropDetailPage.tsx",
+    "frontend/src/routeTree.tsx",
+    "frontend/src/state/parlay/ParlayProvider.tsx",
+    "project_state.json"
+  ]
+}
