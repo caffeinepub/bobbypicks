@@ -1,92 +1,94 @@
 {
   "kind": "build_request",
-  "title": "Add a simple Live Picks page",
+  "title": "Implement prediction settlement engine (backend APIs + admin trigger)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a simple Live Picks page at route \"/live\" that requires Internet Identity login and displays live picks in a responsive card grid.",
-      "target": "frontend",
+      "text": "Implement backend settlement engine APIs so predictions can be settled and the existing frontend settlement UI (Settings page + metrics modules) no longer relies on placeholder data.\n\nBackend must add Candid-exposed methods:\n- shared runSettlementNow() : async () (admin-only)\n- query getSettlementDiagnostics() : async SettlementDiagnostics (admin-only)\n- query getSettlementMetrics() : async SettlementMetrics (authenticated user)\n\nBackend must also define the SettlementDiagnostics and SettlementMetrics record types to match the shapes expected by the existing frontend hooks (including Time.Time timestamps and bigint-compatible counters), and ensure calls do not trap for authorized callers.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-4"
         ],
         "quotes": [
-          "Can you add a simple live picks page"
+          "Can you settle predictions"
         ]
       },
       "acceptanceCriteria": [
-        "Navigating to \"/live\" renders a Live Picks page within the main AppLayout.",
-        "If the user is not authenticated, the page shows the existing login-required UI state.",
-        "Live picks render as a responsive grid of cards (1 column on small screens, increasing on larger breakpoints).",
-        "If there are no picks, the page shows a clear empty state message in English."
+        "Calling runSettlementNow as a non-admin traps with a clear authorization error message.",
+        "Calling runSettlementNow as an admin succeeds and updates settlement diagnostics counters/timestamps.",
+        "Calling getSettlementDiagnostics as an admin returns a complete record with all fields populated (no placeholder behavior needed on the frontend).",
+        "Calling getSettlementDiagnostics as a non-admin traps with a clear authorization error message.",
+        "Calling getSettlementMetrics as an authenticated user returns a complete record with all fields populated (no placeholder behavior needed on the frontend).",
+        "None of these methods trap for authorized callers due to missing internal data (e.g., empty prediction set)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "On the Live Picks page, include basic controls: a text search (player name/team) and a simple status filter (All/Live/Final/Upcoming) that work together to filter the visible picks.",
-      "target": "frontend",
+      "text": "Add backend logic to actually settle predictions stored in the existing settleablePredictions map.\n\nOn each runSettlementNow():\n- Update settlement diagnostics (lastAttempt, totals).\n- Identify predictions with settlementStatus == #active and gameStatus == #completed.\n- Mark those predictions as #settled and set outcome/resultValue deterministically (no randomness) so results are reproducible.\n- Record how many predictions were settled in that run (numSettledInLastRun).\n- Update settlement diagnostics lastSuccess/lastFailure fields appropriately.\n\nIf there are no eligible predictions to settle, the call must still succeed and report numSettledInLastRun = 0.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-4"
         ],
         "quotes": [
-          "Can you add a simple live picks page"
+          "Can you settle predictions"
         ]
       },
       "acceptanceCriteria": [
-        "Search input filters picks by player name or team (case-insensitive).",
-        "Status filter can switch between All, Live, Final, and Upcoming and updates the displayed cards accordingly.",
-        "When no picks match filters, show an in-grid empty results message in English."
+        "If there are active predictions with gameStatus == #completed, after runSettlementNow() they are returned from getSettleablePrediction() with settlementStatus == #settled and outcome != null.",
+        "If there are no eligible predictions, runSettlementNow() completes successfully and increments attempt counters while leaving lastFailure unset (or unchanged) and reporting numSettledInLastRun = 0.",
+        "Settlement behavior is deterministic (re-running settlement without new eligible predictions does not change already-settled outcomes)."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Fetch Live Picks data from the backend with periodic polling and show standard loading/error states, plus a \"Last updated\" timestamp when available.",
-      "target": "both",
+      "text": "Compute and expose settlement performance metrics in getSettlementMetrics() using the settled predictions in settleablePredictions.\n\nAt minimum, metrics must include:\n- totalSettled / totalWon / totalLost / totalPush\n- sevenDayWinRate (as a 0..1 float)\n- totalROI (as a float)\n\nIf there are zero settled predictions, return zeros for metrics (and totalSettled = 0).",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-4"
         ],
         "quotes": [
-          "Can you add a simple live picks page"
+          "Can you settle predictions"
         ]
       },
       "acceptanceCriteria": [
-        "While fetching, show a loading state with English text (e.g., \"Loading live picks...\").",
-        "If the query fails, show the existing error UI state.",
-        "Live picks refresh automatically on an interval (polling) without requiring manual page reload.",
-        "If a last-updated timestamp is available from the backend, display it on the page in human-friendly relative time (English)."
+        "When at least one prediction is settled, getSettlementMetrics().totalSettled > 0 and won/lost/push counters sum to totalSettled.",
+        "sevenDayWinRate is a valid number in [0,1] and matches the settled outcomes considered for the 7-day window (based on timestamps available on predictions).",
+        "totalROI is returned as a valid number (not NaN/Infinity) even if some optional fields like odds or betAmount are missing on predictions (use safe defaults).",
+        "When there are no settled predictions, getSettlementMetrics returns sevenDayWinRate = 0, totalROI = 0, and all counters are 0."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Ensure the backend exposes the Live Picks read APIs needed by the Live Picks page: getLivePicks(), getLivePicksLastUpdated(), and getLivePicksDiagnostics().",
-      "target": "backend",
+      "text": "Update the frontend settlement flow so the existing settlement UI uses the newly implemented backend methods end-to-end.\n\nSpecifically:\n- Ensure the Settings page admin section provides a working action to trigger settlement (runSettlementNow) and that, on success, the settlement diagnostics and settlement metrics sections update without a full page reload.\n- Ensure user-facing error messages remain in English and are appropriate if the backend traps (unauthorized) or fails unexpectedly.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-4"
         ],
         "quotes": [
-          "Can you add a simple live picks page"
+          "Can you settle predictions"
         ]
       },
       "acceptanceCriteria": [
-        "Backend actor provides a method to return the current list of LivePick records.",
-        "Backend actor provides a method to return the last updated timestamp for live picks.",
-        "Backend actor provides a method to return diagnostics for live picks ingestion (including last success/failure timestamps and an error message).",
-        "Frontend can call these methods successfully when authenticated via Internet Identity."
+        "As an authenticated admin, triggering settlement from the Settings page successfully runs the backend method and the UI updates the displayed diagnostics/metrics (via React Query invalidation) within a short time.",
+        "As a non-admin authenticated user, the admin settlement section remains blocked by the existing AdminOnly gate; no settlement action is available.",
+        "If the backend returns an error while running settlement, the UI shows an English error toast/message and does not get stuck in a loading state."
       ]
     }
   ],
   "constraints": [
-    "Frontend files in immutablePaths must not be edited (use composition/wrappers instead).",
-    "Backend must remain a single Motoko actor in backend/main.mo; only add backend/migration.mo if an upgrade/state migration is required."
+    "Backend must remain single-actor (all logic in backend/main.mo).",
+    "Do not edit any files under frontend/src/components/ui or any paths listed in frontend.immutablePaths.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Do not implement real-money wagering, payments, or storing user pick selections on the backend.",
-    "Do not add third-party authentication providers (only Internet Identity).",
-    "Do not add real-time websockets; polling via React Query is sufficient."
+    "Building a full predictions browsing UI (list/detail pages) beyond what already exists.",
+    "Integrating external settlement data providers or real-time game result ingestion.",
+    "Implementing automated scheduled settlement runs (cron-style); only manual/admin-triggered settlement is required."
   ],
   "imageRequirements": {
     "required": [],

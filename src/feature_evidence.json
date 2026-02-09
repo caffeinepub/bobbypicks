@@ -1,4 +1,28 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-update-the-frontend-settlement-flow-so-the-existing-settlement-ui-uses-the-newly-implemented-backend-methods-end-to-end-specifically-ensure-the-settings-page-admin-section-provides-a-working-action-to-trigger-settlement-runsettlementnow-and-that-on-success-the-settlement-diagnostics-and-settlement-metrics-sections-update-without-a-full-page-reload-ensure-user-facing-error-messages-remain-in-english-and-are-appropriate-if-the-backend-traps-unauthorized-or-fails-unexpectedly",
+      "featureTitle": "Update the frontend settlement flow so the existing settlement UI uses the newly implemented backend methods end-to-end.\n\nSpecifically:\n- Ensure the Settings page admin section provides a working action to trigger settlement (runSettlementNow) and that, on success, the settlement diagnostics and settlement metrics sections update without a full page reload.\n- Ensure user-facing error messages remain in English and are appropriate if the backend traps (unauthorized) or fails unexpectedly.",
+      "files": [
+        "frontend/src/hooks/mutations/useRunSettlementNow.ts",
+        "frontend/src/hooks/queries/useSettlementDiagnostics.ts",
+        "frontend/src/hooks/queries/useSettlementMetrics.ts",
+        "frontend/src/pages/SettingsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "http-outcalls@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

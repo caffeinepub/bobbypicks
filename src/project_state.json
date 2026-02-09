@@ -5,17 +5,26 @@
   "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": false,
-  "existing_features": [],
+  "existing_features": [
+    {
+      "id": "feature-update-the-frontend-settlement-flow-so-the-existing-settlement-ui-uses-the-newly-implemented-backend-methods-end-to-end-specifically-ensure-the-settings-page-admin-section-provides-a-working-action-to-trigger-settlement-runsettlementnow-and-that-on-success-the-settlement-diagnostics-and-settlement-metrics-sections-update-without-a-full-page-reload-ensure-user-facing-error-messages-remain-in-english-and-are-appropriate-if-the-backend-traps-unauthorized-or-fails-unexpectedly",
+      "title": "Update the frontend settlement flow so the existing settlement UI uses the newly implemented backend methods end-to-end.\n\nSpecifically:\n- Ensure the Settings page admin section provides a working action to trigger settlement (runSettlementNow) and that, on success, the settlement diagnostics and settlement metrics sections update without a full page reload.\n- Ensure user-facing error messages remain in English and are appropriate if the backend traps (unauthorized) or fails unexpectedly.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    }
+  ],
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Add a simple live picks page",
+      "summary": "Add ability to settle predictions (resolve outcomes and update results)",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Add a simple Live Picks page at route \"/live\" that requires Internet Identity login and displays live picks in a responsive card grid.",
+      "summary": "Implement backend settlement engine APIs so predictions can be settled and the existing frontend settlement UI (Settings page + metrics modules) no longer relies on placeholder data.\n\nBackend must add Candid-exposed methods:\n- shared runSettlementNow() : async () (admin-only)\n- query getSettlementDiagnostics() : async SettlementDiagnostics (admin-only)\n- query getSettlementMetrics() : async SettlementMetrics (authenticated user)\n\nBackend must also define the SettlementDiagnostics and SettlementMetrics record types to match the shapes expected by the existing frontend hooks (including Time.Time timestamps and bigint-compatible counters), and ensure calls do not trap for authorized callers.",
       "reqIds": [
         "REQ-1"
       ],
@@ -23,7 +32,7 @@
     },
     {
       "id": "AR-3",
-      "summary": "On the Live Picks page, include basic controls: a text search (player name/team) and a simple status filter (All/Live/Final/Upcoming) that work together to filter the visible picks.",
+      "summary": "Add backend logic to actually settle predictions stored in the existing settleablePredictions map.\n\nOn each runSettlementNow():\n- Update settlement diagnostics (lastAttempt, totals).\n- Identify predictions with settlementStatus == #active and gameStatus == #completed.\n- Mark those predictions as #settled and set outcome/resultValue deterministically (no randomness) so results are reproducible.\n- Record how many predictions were settled in that run (numSettledInLastRun).\n- Update settlement diagnostics lastSuccess/lastFailure fields appropriately.\n\nIf there are no eligible predictions to settle, the call must still succeed and report numSettledInLastRun = 0.",
       "reqIds": [
         "REQ-2"
       ],
@@ -31,22 +40,14 @@
     },
     {
       "id": "AR-4",
-      "summary": "Fetch Live Picks data from the backend with periodic polling and show standard loading/error states, plus a \"Last updated\" timestamp when available.",
+      "summary": "Compute and expose settlement performance metrics in getSettlementMetrics() using the settled predictions in settleablePredictions.\n\nAt minimum, metrics must include:\n- totalSettled / totalWon / totalLost / totalPush\n- sevenDayWinRate (as a 0..1 float)\n- totalROI (as a float)\n\nIf there are zero settled predictions, return zeros for metrics (and totalSettled = 0).",
       "reqIds": [
         "REQ-3"
       ],
       "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Ensure the backend exposes the Live Picks read APIs needed by the Live Picks page: getLivePicks(), getLivePicksLastUpdated(), and getLivePicksDiagnostics().",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "status": "pending"
     }
   ],
-  "projectName": "Add a simple Live Picks page",
+  "projectName": "Implement prediction settlement engine (backend APIs + admin trigger)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

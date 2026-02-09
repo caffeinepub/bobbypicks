@@ -128,6 +128,26 @@ export interface SettleablePrediction {
   'lineString' : string,
   'statCategory' : StatCategory,
 }
+export interface SettlementDiagnostics {
+  'totalSettledPredictions' : bigint,
+  'lastFailureMessage' : string,
+  'totalFailedSettlements' : bigint,
+  'totalSettlementAttempts' : bigint,
+  'lastSuccess' : Time,
+  'numSettledInLastRun' : bigint,
+  'totalPendingPredictions' : bigint,
+  'lastFailure' : Time,
+  'lastAttempt' : Time,
+  'totalSuccessfulSettlements' : bigint,
+}
+export interface SettlementMetrics {
+  'totalLost' : bigint,
+  'totalPush' : bigint,
+  'totalROI' : number,
+  'totalWon' : bigint,
+  'totalSettled' : bigint,
+  'sevenDayWinRate' : number,
+}
 export type SettlementOutcome = { 'won' : null } |
   { 'lost' : null } |
   { 'push' : null };
@@ -197,6 +217,8 @@ export interface _SERVICE {
     [bigint],
     [] | [SettleablePrediction]
   >,
+  'getSettlementDiagnostics' : ActorMethod<[], SettlementDiagnostics>,
+  'getSettlementMetrics' : ActorMethod<[], SettlementMetrics>,
   'getSource' : ActorMethod<[], string>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUserSensitivitySettings' : ActorMethod<[], [] | [SensitivitySettings]>,
@@ -205,6 +227,7 @@ export interface _SERVICE {
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'refreshLivePicksInternal' : ActorMethod<[], undefined>,
   'register' : ActorMethod<[], undefined>,
+  'runSettlementNow' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'saveOrUpdateProp' : ActorMethod<[PlayerProps], undefined>,
   'saveProviderConfig' : ActorMethod<[IngestionProviderConfig], undefined>,

@@ -22,8 +22,8 @@ type StatusFilterOption = 'all' | GameStatus;
 export default function LivePicksPage() {
   const { identity } = useInternetIdentity();
   const { data: livePicks, isLoading: picksLoading, error: picksError } = useLivePicks();
-  const { data: lastUpdated, isLoading: timestampLoading } = useLivePicksLastUpdated();
-  const { data: diagnostics, isLoading: diagnosticsLoading } = useLivePicksDiagnostics();
+  const { data: lastUpdated, isLoading: timestampLoading, error: timestampError } = useLivePicksLastUpdated();
+  const { data: diagnostics, isLoading: diagnosticsLoading, error: diagnosticsError } = useLivePicksDiagnostics();
   const { data: isAdmin } = useIsAdmin();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterOption>('all');
@@ -39,8 +39,17 @@ export default function LivePicksPage() {
     return <LoadingState message="Loading live picks..." />;
   }
 
+  // Handle errors from any of the queries
   if (picksError) {
     return <ErrorState error={picksError} />;
+  }
+
+  if (timestampError) {
+    return <ErrorState error={timestampError} />;
+  }
+
+  if (diagnosticsError) {
+    return <ErrorState error={diagnosticsError} />;
   }
 
   // Check if the most recent ingestion attempt failed
@@ -82,7 +91,7 @@ export default function LivePicksPage() {
     );
   }
 
-  // Check if Live Picks have never been ingested
+  // Check if Live Picks have never been ingested (strictly based on lastUpdated === 0)
   const hasNeverBeenIngested =
     (!lastUpdated || lastUpdated === BigInt(0)) && (!livePicks || livePicks.length === 0);
 

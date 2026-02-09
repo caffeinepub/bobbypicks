@@ -1,54 +1,52 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T01:42:58.407Z",
+  "generatedAt": "2026-02-09T02:46:42.576Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
     "total": 4,
-    "implemented": 0,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add a simple Live Picks page at route \"/live\" that requires Internet Identity login and displays live picks in a responsive card grid.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/routeTree.tsx",
-          "frontend/src/pages/LivePicksPage.tsx",
-          "frontend/src/components/live/LivePicksGrid.tsx"
-        ],
+        "summary": "Implement backend settlement engine APIs so predictions can be settled and the existing frontend settlement UI (Settings page + metrics modules) no longer relies on placeholder data.\n\nBackend must add Candid-exposed methods:\n- shared runSettlementNow() : async () (admin-only)\n- query getSettlementDiagnostics() : async SettlementDiagnostics (admin-only)\n- query getSettlementMetrics() : async SettlementMetrics (authenticated user)\n\nBackend must also define the SettlementDiagnostics and SettlementMetrics record types to match the shapes expected by the existing frontend hooks (including Time.Time timestamps and bigint-compatible counters), and ensure calls do not trap for authorized callers.",
+        "status": "unknown",
+        "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "On the Live Picks page, include basic controls: a text search (player name/team) and a simple status filter (All/Live/Final/Upcoming) that work together to filter the visible picks.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/pages/LivePicksPage.tsx",
-          "frontend/src/components/live/LivePicksStatusFilter.tsx",
-          "frontend/src/components/live/LivePicksGrid.tsx"
-        ],
+        "summary": "Add backend logic to actually settle predictions stored in the existing settleablePredictions map.\n\nOn each runSettlementNow():\n- Update settlement diagnostics (lastAttempt, totals).\n- Identify predictions with settlementStatus == #active and gameStatus == #completed.\n- Mark those predictions as #settled and set outcome/resultValue deterministically (no randomness) so results are reproducible.\n- Record how many predictions were settled in that run (numSettledInLastRun).\n- Update settlement diagnostics lastSuccess/lastFailure fields appropriately.\n\nIf there are no eligible predictions to settle, the call must still succeed and report numSettledInLastRun = 0.",
+        "status": "unknown",
+        "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "Fetch Live Picks data from the backend with periodic polling and show standard loading/error states, plus a \"Last updated\" timestamp when available.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/hooks/queries/useLivePicks.ts",
-          "frontend/src/hooks/queries/useLivePicksLastUpdated.ts",
-          "frontend/src/pages/LivePicksPage.tsx"
-        ],
+        "summary": "Compute and expose settlement performance metrics in getSettlementMetrics() using the settled predictions in settleablePredictions.\n\nAt minimum, metrics must include:\n- totalSettled / totalWon / totalLost / totalPush\n- sevenDayWinRate (as a 0..1 float)\n- totalROI (as a float)\n\nIf there are zero settled predictions, return zeros for metrics (and totalSettled = 0).",
+        "status": "unknown",
+        "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-4",
-        "summary": "Ensure the backend exposes the Live Picks read APIs needed by the Live Picks page: getLivePicks(), getLivePicksLastUpdated(), and getLivePicksDiagnostics().",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "summary": "Update the frontend settlement flow so the existing settlement UI uses the newly implemented backend methods end-to-end.\n\nSpecifically:\n- Ensure the Settings page admin section provides a working action to trigger settlement (runSettlementNow) and that, on success, the settlement diagnostics and settlement metrics sections update without a full page reload.\n- Ensure user-facing error messages remain in English and are appropriate if the backend traps (unauthorized) or fails unexpectedly.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/queries/useSettlementDiagnostics.ts",
+          "frontend/src/hooks/queries/useSettlementMetrics.ts",
+          "frontend/src/hooks/mutations/useRunSettlementNow.ts",
+          "frontend/src/pages/SettingsPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/queries/useSettlementDiagnostics.ts",
+          "frontend/src/hooks/queries/useSettlementMetrics.ts",
+          "frontend/src/hooks/mutations/useRunSettlementNow.ts",
+          "frontend/src/pages/SettingsPage.tsx"
+        ]
       }
     ]
   },
@@ -56,7 +54,16 @@
     "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
+    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/mutations/useRunSettlementNow.ts",
+    "frontend/src/hooks/queries/useSettlementDiagnostics.ts",
+    "frontend/src/hooks/queries/useSettlementMetrics.ts",
+    "frontend/src/pages/SettingsPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

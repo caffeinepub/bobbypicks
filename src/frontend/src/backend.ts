@@ -119,6 +119,14 @@ export interface SensitivitySettings {
     edgeThresholdPercentage: bigint;
     verificationRollingWindow: VerificationRollingWindow;
 }
+export interface SettlementMetrics {
+    totalLost: bigint;
+    totalPush: bigint;
+    totalROI: number;
+    totalWon: bigint;
+    totalSettled: bigint;
+    sevenDayWinRate: number;
+}
 export interface TransformationInput {
     context: Uint8Array;
     response: http_request_result;
@@ -166,6 +174,18 @@ export interface SettleablePrediction {
     outcome?: SettlementOutcome;
     lineString: string;
     statCategory: StatCategory;
+}
+export interface SettlementDiagnostics {
+    totalSettledPredictions: bigint;
+    lastFailureMessage: string;
+    totalFailedSettlements: bigint;
+    totalSettlementAttempts: bigint;
+    lastSuccess: Time;
+    numSettledInLastRun: bigint;
+    totalPendingPredictions: bigint;
+    lastFailure: Time;
+    lastAttempt: Time;
+    totalSuccessfulSettlements: bigint;
 }
 export interface PlayerPropsWithEdgesView {
     projections: Array<Projection>;
@@ -293,6 +313,8 @@ export interface backendInterface {
     getProjection(propId: bigint): Promise<Projection | null>;
     getProviderConfig(): Promise<IngestionProviderConfig | null>;
     getSettleablePrediction(predictionId: bigint): Promise<SettleablePrediction | null>;
+    getSettlementDiagnostics(): Promise<SettlementDiagnostics>;
+    getSettlementMetrics(): Promise<SettlementMetrics>;
     getSource(): Promise<string>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserSensitivitySettings(): Promise<SensitivitySettings | null>;
@@ -301,6 +323,7 @@ export interface backendInterface {
     isCallerAdmin(): Promise<boolean>;
     refreshLivePicksInternal(): Promise<void>;
     register(): Promise<void>;
+    runSettlementNow(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveOrUpdateProp(prop: PlayerProps): Promise<void>;
     saveProviderConfig(config: IngestionProviderConfig): Promise<void>;
@@ -535,6 +558,34 @@ export class Backend implements backendInterface {
             return from_candid_opt_n43(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getSettlementDiagnostics(): Promise<SettlementDiagnostics> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getSettlementDiagnostics();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getSettlementDiagnostics();
+            return result;
+        }
+    }
+    async getSettlementMetrics(): Promise<SettlementMetrics> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getSettlementMetrics();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getSettlementMetrics();
+            return result;
+        }
+    }
     async getSource(): Promise<string> {
         if (this.processError) {
             try {
@@ -644,6 +695,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.register();
+            return result;
+        }
+    }
+    async runSettlementNow(): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.runSettlementNow();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.runSettlementNow();
             return result;
         }
     }

@@ -14,6 +14,7 @@ export function useLivePicksDiagnostics() {
       return actor.getLivePicksDiagnostics();
     },
     enabled: !!actor && !actorFetching && !!identity,
+    refetchInterval: 15000, // Poll every 15 seconds to keep diagnostics fresh
     retry: false,
   });
 }

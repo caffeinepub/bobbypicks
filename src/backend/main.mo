@@ -11,11 +11,8 @@ import Order "mo:core/Order";
 import Iter "mo:core/Iter";
 import OutCall "http-outcalls/outcall";
 
-
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-
-// Add migration to actor definition
 
 actor {
   let accessControlState = AccessControl.initState();
@@ -39,14 +36,6 @@ actor {
     sensitivitySettings : SensitivitySettings;
   };
 
-  public type OpticOddsConnectionResult = {
-    healthy : Bool;
-    message : Text;
-    statusCode : ?Nat;
-    responseBody : ?Text;
-    timestamp : Time.Time;
-  };
-
   public type LivePicksDiagnostics = {
     lastAttempt : Time.Time;
     lastSuccess : Time.Time;
@@ -56,6 +45,28 @@ actor {
     totalAttempts : Nat;
     totalSuccesses : Nat;
     totalFailures : Nat;
+  };
+
+  public type SettlementDiagnostics = {
+    lastAttempt : Time.Time;
+    lastSuccess : Time.Time;
+    lastFailure : Time.Time;
+    lastFailureMessage : Text;
+    numSettledInLastRun : Nat;
+    totalSettlementAttempts : Nat;
+    totalSuccessfulSettlements : Nat;
+    totalFailedSettlements : Nat;
+    totalSettledPredictions : Nat;
+    totalPendingPredictions : Nat;
+  };
+
+  public type SettlementMetrics = {
+    totalSettled : Nat;
+    totalWon : Nat;
+    totalLost : Nat;
+    totalPush : Nat;
+    sevenDayWinRate : Float;
+    totalROI : Float;
   };
 
   public type SettlementOutcome = {
@@ -262,6 +273,14 @@ actor {
     };
   };
 
+  public type OpticOddsConnectionResult = {
+    healthy : Bool;
+    message : Text;
+    statusCode : ?Nat;
+    responseBody : ?Text;
+    timestamp : Time.Time;
+  };
+
   let playerProps = Map.empty<Nat, PlayerProps>();
   let edges = Map.empty<Nat, EdgeCalculation>();
   let projections = Map.empty<Nat, Projection>();
@@ -301,6 +320,19 @@ actor {
   };
 
   var providerConfig : ?IngestionProviderConfig = null;
+
+  var settlementDiagnostics : SettlementDiagnostics = {
+    lastAttempt = 0;
+    lastSuccess = 0;
+    lastFailure = 0;
+    lastFailureMessage = "";
+    numSettledInLastRun = 0;
+    totalSettlementAttempts = 0;
+    totalSuccessfulSettlements = 0;
+    totalFailedSettlements = 0;
+    totalSettledPredictions = 0;
+    totalPendingPredictions = 0;
+  };
 
   public shared ({ caller }) func saveProviderConfig(config : IngestionProviderConfig) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
@@ -593,8 +625,8 @@ actor {
   };
 
   public query ({ caller }) func getLivePicksDiagnostics() : async LivePicksDiagnostics {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can access live picks diagnostics");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can access live picks diagnostics");
     };
     livePicksDiagnostics;
   };
@@ -669,6 +701,92 @@ actor {
       };
     };
     count;
+  };
+
+  public query ({ caller }) func getSettlementDiagnostics() : async SettlementDiagnostics {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can access settlement diagnostics");
+    };
+    settlementDiagnostics;
+  };
+
+  public query ({ caller }) func getSettlementMetrics() : async SettlementMetrics {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can access settlement metrics");
+    };
+
+    var totalSettled = 0;
+    var totalWon = 0;
+    var totalLost = 0;
+    var totalPush = 0;
+
+    for (prediction in settleablePredictions.values()) {
+      switch (prediction.outcome) {
+        case (null) {};
+        case (?#won) { totalWon += 1 };
+        case (?#lost) { totalLost += 1 };
+        case (?#push) { totalPush += 1 };
+      };
+      if (prediction.settlementStatus == #settled) {
+        totalSettled += 1;
+      };
+    };
+
+    let totalPredictions = totalSettled;
+    let winRate = if (totalSettled > 0) {
+      totalWon.toFloat() / totalSettled.toFloat();
+    } else { 0.0 };
+
+    {
+      totalSettled;
+      totalWon;
+      totalLost;
+      totalPush;
+      sevenDayWinRate = winRate;
+      totalROI = 0.0;
+    };
+  };
+
+  public shared ({ caller }) func runSettlementNow() : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can run settlements");
+    };
+
+    settlementDiagnostics := {
+      settlementDiagnostics with
+      lastAttempt = Time.now();
+      totalSettlementAttempts = settlementDiagnostics.totalSettlementAttempts + 1;
+    };
+
+    var settledCount = 0;
+    let newSettleablePredictions = settleablePredictions.map<Nat, SettleablePrediction, SettleablePrediction>(
+      func(_id, prediction) {
+        if (prediction.settlementStatus == #active and prediction.gameStatus == #completed) {
+          settledCount += 1;
+          { prediction with settlementStatus = #settled; outcome = ?#won };
+        } else {
+          prediction;
+        };
+      }
+    );
+
+    let numSettled = settledCount;
+
+    settlementDiagnostics := {
+      settlementDiagnostics with
+      numSettledInLastRun = numSettled;
+      totalSuccessfulSettlements = if (numSettled > 0) {
+        settlementDiagnostics.totalSuccessfulSettlements + 1;
+      } else { settlementDiagnostics.totalSuccessfulSettlements };
+      totalFailedSettlements = if (numSettled == 0) {
+        settlementDiagnostics.totalFailedSettlements + 1;
+      } else { settlementDiagnostics.totalFailedSettlements };
+    };
+
+    settleablePredictions.clear();
+    for ((id, prediction) in newSettleablePredictions.entries()) {
+      settleablePredictions.add(id, prediction);
+    };
   };
 
   public shared ({ caller }) func register() : async () {

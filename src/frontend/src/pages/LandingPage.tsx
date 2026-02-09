@@ -5,6 +5,7 @@ import { TrendingUp, Target, Layers, Shield, Zap, BarChart3 } from 'lucide-react
 import { useEdges } from '../hooks/queries/useEdges';
 import { DailyTopParlay } from '../components/landing/DailyTopParlay';
 import { SettlementMetricsModule } from '../components/landing/SettlementMetricsModule';
+import { LivePicksPreview } from '../components/landing/LivePicksPreview';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 
 export default function LandingPage() {
@@ -53,6 +54,9 @@ export default function LandingPage() {
       <section>
         <SettlementMetricsModule />
       </section>
+
+      {/* Live Picks Preview - Only shown when authenticated and data available */}
+      <LivePicksPreview />
 
       {/* Daily Top 3 Parlay - Only shown when authenticated */}
       {identity && topEdges.length > 0 && (

@@ -37,6 +37,14 @@ export interface SensitivitySettings {
     edgeThresholdPercentage: bigint;
     verificationRollingWindow: VerificationRollingWindow;
 }
+export interface SettlementMetrics {
+    totalLost: bigint;
+    totalPush: bigint;
+    totalROI: number;
+    totalWon: bigint;
+    totalSettled: bigint;
+    sevenDayWinRate: number;
+}
 export interface TransformationInput {
     context: Uint8Array;
     response: http_request_result;
@@ -84,6 +92,18 @@ export interface SettleablePrediction {
     outcome?: SettlementOutcome;
     lineString: string;
     statCategory: StatCategory;
+}
+export interface SettlementDiagnostics {
+    totalSettledPredictions: bigint;
+    lastFailureMessage: string;
+    totalFailedSettlements: bigint;
+    totalSettlementAttempts: bigint;
+    lastSuccess: Time;
+    numSettledInLastRun: bigint;
+    totalPendingPredictions: bigint;
+    lastFailure: Time;
+    lastAttempt: Time;
+    totalSuccessfulSettlements: bigint;
 }
 export interface PlayerPropsWithEdgesView {
     projections: Array<Projection>;
@@ -210,6 +230,8 @@ export interface backendInterface {
     getProjection(propId: bigint): Promise<Projection | null>;
     getProviderConfig(): Promise<IngestionProviderConfig | null>;
     getSettleablePrediction(predictionId: bigint): Promise<SettleablePrediction | null>;
+    getSettlementDiagnostics(): Promise<SettlementDiagnostics>;
+    getSettlementMetrics(): Promise<SettlementMetrics>;
     getSource(): Promise<string>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserSensitivitySettings(): Promise<SensitivitySettings | null>;
@@ -218,6 +240,7 @@ export interface backendInterface {
     isCallerAdmin(): Promise<boolean>;
     refreshLivePicksInternal(): Promise<void>;
     register(): Promise<void>;
+    runSettlementNow(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveOrUpdateProp(prop: PlayerProps): Promise<void>;
     saveProviderConfig(config: IngestionProviderConfig): Promise<void>;

@@ -170,6 +170,26 @@ export const SettleablePrediction = IDL.Record({
   'lineString' : IDL.Text,
   'statCategory' : StatCategory,
 });
+export const SettlementDiagnostics = IDL.Record({
+  'totalSettledPredictions' : IDL.Nat,
+  'lastFailureMessage' : IDL.Text,
+  'totalFailedSettlements' : IDL.Nat,
+  'totalSettlementAttempts' : IDL.Nat,
+  'lastSuccess' : Time,
+  'numSettledInLastRun' : IDL.Nat,
+  'totalPendingPredictions' : IDL.Nat,
+  'lastFailure' : Time,
+  'lastAttempt' : Time,
+  'totalSuccessfulSettlements' : IDL.Nat,
+});
+export const SettlementMetrics = IDL.Record({
+  'totalLost' : IDL.Nat,
+  'totalPush' : IDL.Nat,
+  'totalROI' : IDL.Float64,
+  'totalWon' : IDL.Nat,
+  'totalSettled' : IDL.Nat,
+  'sevenDayWinRate' : IDL.Float64,
+});
 export const OpticOddsConnectionResult = IDL.Record({
   'healthy' : IDL.Bool,
   'message' : IDL.Text,
@@ -229,6 +249,8 @@ export const idlService = IDL.Service({
       [IDL.Opt(SettleablePrediction)],
       ['query'],
     ),
+  'getSettlementDiagnostics' : IDL.Func([], [SettlementDiagnostics], ['query']),
+  'getSettlementMetrics' : IDL.Func([], [SettlementMetrics], ['query']),
   'getSource' : IDL.Func([], [IDL.Text], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
@@ -249,6 +271,7 @@ export const idlService = IDL.Service({
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'refreshLivePicksInternal' : IDL.Func([], [], []),
   'register' : IDL.Func([], [], []),
+  'runSettlementNow' : IDL.Func([], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'saveOrUpdateProp' : IDL.Func([PlayerProps], [], []),
   'saveProviderConfig' : IDL.Func([IngestionProviderConfig], [], []),
@@ -426,6 +449,26 @@ export const idlFactory = ({ IDL }) => {
     'lineString' : IDL.Text,
     'statCategory' : StatCategory,
   });
+  const SettlementDiagnostics = IDL.Record({
+    'totalSettledPredictions' : IDL.Nat,
+    'lastFailureMessage' : IDL.Text,
+    'totalFailedSettlements' : IDL.Nat,
+    'totalSettlementAttempts' : IDL.Nat,
+    'lastSuccess' : Time,
+    'numSettledInLastRun' : IDL.Nat,
+    'totalPendingPredictions' : IDL.Nat,
+    'lastFailure' : Time,
+    'lastAttempt' : Time,
+    'totalSuccessfulSettlements' : IDL.Nat,
+  });
+  const SettlementMetrics = IDL.Record({
+    'totalLost' : IDL.Nat,
+    'totalPush' : IDL.Nat,
+    'totalROI' : IDL.Float64,
+    'totalWon' : IDL.Nat,
+    'totalSettled' : IDL.Nat,
+    'sevenDayWinRate' : IDL.Float64,
+  });
   const OpticOddsConnectionResult = IDL.Record({
     'healthy' : IDL.Bool,
     'message' : IDL.Text,
@@ -482,6 +525,12 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(SettleablePrediction)],
         ['query'],
       ),
+    'getSettlementDiagnostics' : IDL.Func(
+        [],
+        [SettlementDiagnostics],
+        ['query'],
+      ),
+    'getSettlementMetrics' : IDL.Func([], [SettlementMetrics], ['query']),
     'getSource' : IDL.Func([], [IDL.Text], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
@@ -502,6 +551,7 @@ export const idlFactory = ({ IDL }) => {
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'refreshLivePicksInternal' : IDL.Func([], [], []),
     'register' : IDL.Func([], [], []),
+    'runSettlementNow' : IDL.Func([], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'saveOrUpdateProp' : IDL.Func([PlayerProps], [], []),
     'saveProviderConfig' : IDL.Func([IngestionProviderConfig], [], []),

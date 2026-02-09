@@ -329,7 +329,7 @@ export default function SettingsPage() {
               Settlement Engine Status
             </CardTitle>
             <CardDescription>
-              Monitor the automatic settlement engine that grades predictions
+              Monitor and control the prediction settlement engine
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -358,32 +358,43 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Active Predictions</p>
+                    <p className="text-xs text-muted-foreground">Settled in Last Run</p>
                     <p className="text-sm font-medium">
-                      {Number(settlementDiagnostics.numActivePredictions)} active
+                      {Number(settlementDiagnostics.numSettledInLastRun)} predictions
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-4 pt-2 border-t">
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t">
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Last Run</p>
-                    <p className="text-sm font-medium">{Number(settlementDiagnostics.numSettledInLastRun)}</p>
+                    <p className="text-xs text-muted-foreground">Total Settled</p>
+                    <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                      {Number(settlementDiagnostics.totalSettledPredictions)}
+                    </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Total Runs</p>
-                    <p className="text-sm font-medium">{Number(settlementDiagnostics.totalAttempts)}</p>
+                    <p className="text-xs text-muted-foreground">Pending</p>
+                    <p className="text-sm font-medium">
+                      {Number(settlementDiagnostics.totalPendingPredictions)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 pt-2 border-t">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Total Attempts</p>
+                    <p className="text-sm font-medium">{Number(settlementDiagnostics.totalSettlementAttempts)}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Successes</p>
                     <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                      {Number(settlementDiagnostics.totalSuccesses)}
+                      {Number(settlementDiagnostics.totalSuccessfulSettlements)}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Failures</p>
                     <p className="text-sm font-medium text-destructive">
-                      {Number(settlementDiagnostics.totalFailures)}
+                      {Number(settlementDiagnostics.totalFailedSettlements)}
                     </p>
                   </div>
                 </div>
@@ -398,31 +409,133 @@ export default function SettingsPage() {
                   </Alert>
                 )}
 
-                {settlementMetrics && settlementMetrics.totalSettled > BigInt(0) && (
-                  <div className="pt-4 border-t space-y-3">
-                    <p className="text-sm font-medium">Latest Settlement Metrics</p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">7-Day Win Rate</p>
-                        <p className="text-sm font-medium flex items-center gap-2">
-                          <TrendingUp className="h-3.5 w-3.5 text-accent" />
-                          {(settlementMetrics.sevenDayWinRate * 100).toFixed(1)}%
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Total ROI</p>
-                        <p className={`text-sm font-medium flex items-center gap-2 ${settlementMetrics.totalROI >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
-                          <TrendingUp className="h-3.5 w-3.5" />
-                          {settlementMetrics.totalROI >= 0 ? '+' : ''}{(settlementMetrics.totalROI * 100).toFixed(1)}%
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <Button 
+                  onClick={handleRunSettlement} 
+                  disabled={isRunningSettlement} 
+                  className="w-full mt-4"
+                  variant="default"
+                >
+                  {isRunningSettlement ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Running Settlement...
+                    </>
+                  ) : (
+                    <>
+                      <Target className="mr-2 h-4 w-4" />
+                      Run Settlement Now
+                    </>
+                  )}
+                </Button>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">Loading diagnostics...</p>
+              <p className="text-sm text-muted-foreground">Loading settlement diagnostics...</p>
             )}
+          </CardContent>
+        </Card>
+
+        {settlementMetrics && (
+          <Card className="border-accent/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-accent" />
+                Latest Settlement Metrics
+              </CardTitle>
+              <CardDescription>
+                Performance metrics from settled predictions
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">7-Day Win Rate</p>
+                  <p className="text-2xl font-bold">
+                    {(settlementMetrics.sevenDayWinRate * 100).toFixed(1)}%
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Total ROI</p>
+                  <p className="text-2xl font-bold">
+                    {settlementMetrics.totalROI >= 0 ? '+' : ''}{settlementMetrics.totalROI.toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-4 pt-2 border-t">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-sm font-medium">{Number(settlementMetrics.totalSettled)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Won</p>
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                    {Number(settlementMetrics.totalWon)}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Lost</p>
+                  <p className="text-sm font-medium text-destructive">
+                    {Number(settlementMetrics.totalLost)}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Push</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {Number(settlementMetrics.totalPush)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card className="border-accent/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 text-accent" />
+              Manual Data Refresh
+            </CardTitle>
+            <CardDescription>Trigger a manual refresh of prop data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => refresh()} disabled={isPending} className="w-full">
+              {isPending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Refresh Data
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-accent/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Radio className="h-5 w-5 text-accent" />
+              Manual Live Picks Refresh
+            </CardTitle>
+            <CardDescription>Trigger a manual refresh of live picks data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => refreshLivePicks()} disabled={isRefreshingLivePicks} className="w-full">
+              {isRefreshingLivePicks ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Refreshing Live Picks...
+                </>
+              ) : (
+                <>
+                  <Radio className="mr-2 h-4 w-4" />
+                  Refresh Live Picks
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
 
@@ -430,82 +543,36 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-accent" />
-              Admin Management
+              Grant Admin Access
             </CardTitle>
-            <CardDescription>
-              Grant administrator privileges to other users
-            </CardDescription>
+            <CardDescription>Promote a user to admin by their Principal ID</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert>
-              <AlertTitle>Grant Admin Access</AlertTitle>
-              <AlertDescription>
-                Enter a Principal ID to promote a user to administrator. They will gain full access to admin controls after their next login.
-              </AlertDescription>
-            </Alert>
             <div className="space-y-2">
               <Label htmlFor="principalId">Principal ID</Label>
               <Input
                 id="principalId"
-                type="text"
                 placeholder="Enter Principal ID to promote"
                 value={principalToPromote}
                 onChange={(e) => setPrincipalToPromote(e.target.value)}
               />
             </div>
-            <Button 
-              onClick={handleGrantAdmin} 
-              disabled={isGranting || !principalToPromote.trim()} 
+            <Button
+              onClick={handleGrantAdmin}
+              disabled={isGranting || !principalToPromote.trim()}
               className="w-full"
             >
-              {isGranting ? 'Granting Admin...' : 'Grant Admin'}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="border-accent/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-accent" />
-              Admin Controls
-            </CardTitle>
-            <CardDescription>
-              These controls are only visible to authenticated administrators
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <AlertTitle>Manual Data Refresh</AlertTitle>
-              <AlertDescription>
-                Trigger a manual refresh to fetch the latest lines from PrizePicks and sportsbook
-                providers. This may take a few moments.
-              </AlertDescription>
-            </Alert>
-            <Button onClick={() => refresh()} disabled={isPending} className="w-full">
-              <RefreshCw className={`mr-2 h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
-              {isPending ? 'Refreshing Data...' : 'Refresh Data Now'}
-            </Button>
-
-            <Alert>
-              <AlertTitle>Refresh Live Picks</AlertTitle>
-              <AlertDescription>
-                Trigger a manual refresh to populate the Live Picks dataset with current in-game player props.
-              </AlertDescription>
-            </Alert>
-            <Button onClick={() => refreshLivePicks()} disabled={isRefreshingLivePicks} className="w-full">
-              <Radio className={`mr-2 h-4 w-4 ${isRefreshingLivePicks ? 'animate-spin' : ''}`} />
-              {isRefreshingLivePicks ? 'Refreshing Live Picks...' : 'Refresh Live Picks Now'}
-            </Button>
-
-            <Alert>
-              <AlertTitle>Run Settlement Now</AlertTitle>
-              <AlertDescription>
-                Manually trigger the settlement engine to check for completed games and grade active predictions.
-              </AlertDescription>
-            </Alert>
-            <Button onClick={handleRunSettlement} disabled={isRunningSettlement} className="w-full">
-              <Target className={`mr-2 h-4 w-4 ${isRunningSettlement ? 'animate-spin' : ''}`} />
-              {isRunningSettlement ? 'Running Settlement...' : 'Run Settlement Now'}
+              {isGranting ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Granting Admin...
+                </>
+              ) : (
+                <>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Grant Admin Access
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>

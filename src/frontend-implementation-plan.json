@@ -1,85 +1,36 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add /live Live Picks page with auth, filtering, and polling",
+  "title": "Wire Settings settlement UI to real backend settlement APIs",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Ensure /live renders a Live Picks page inside AppLayout and requires Internet Identity login with a responsive card grid and clear empty state.",
+      "id": "REQ-4",
+      "summary": "Update the Settings settlement UI and settlement hooks to call real backend methods (no placeholder fallbacks), refresh diagnostics/metrics via React Query invalidation, and show English error messages for backend failures.",
       "acceptanceCriteria": [
-        "Navigating to \"/live\" renders a Live Picks page within the main AppLayout.",
-        "If the user is not authenticated, the page shows the existing login-required UI state.",
-        "Live picks render as a responsive grid of cards (1 column on small screens, increasing on larger breakpoints).",
-        "If there are no picks, the page shows a clear empty state message in English."
+        "As an authenticated admin, triggering settlement from the Settings page successfully runs the backend method and the UI updates the displayed diagnostics/metrics (via React Query invalidation) within a short time.",
+        "As a non-admin authenticated user, the admin settlement section remains blocked by the existing AdminOnly gate; no settlement action is available.",
+        "If the backend returns an error while running settlement, the UI shows an English error toast/message and does not get stuck in a loading state."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/routeTree.tsx",
+          "path": "frontend/src/hooks/queries/useSettlementDiagnostics.ts",
           "operation": "modify",
-          "description": "Confirm the \"/live\" route is registered and wrapped with the existing auth gate (RequireAuth) so unauthenticated users see the existing LoginRequiredState. Verify the component's usage instructions before implementing."
+          "description": "Remove placeholder/\"method missing\" fallback behavior and use the generated backend types (import SettlementDiagnostics from frontend backend typings). Gate the query so it only attempts to fetch when the user is authenticated AND admin (use existing admin detection hook), preventing non-admin trap noise when the Settings page is rendered. Keep user-facing errors in English."
         },
         {
-          "path": "frontend/src/pages/LivePicksPage.tsx",
+          "path": "frontend/src/hooks/queries/useSettlementMetrics.ts",
           "operation": "modify",
-          "description": "Ensure the Live Picks page content is rendered within the existing AppLayout flow and that the unauthenticated state relies on the existing login-required UI state (via RequireAuth/LoginRequiredState). Keep/confirm an English empty state when no picks are available. Verify the component's usage instructions before implementing."
+          "description": "Remove placeholder/\"method missing\" fallback behavior and use the generated backend types (import SettlementMetrics from frontend backend typings). Ensure the query is enabled only when the user is authenticated (identity present) so the backend authenticated-user guard does not produce avoidable errors on public/unauthenticated renders (e.g., modules that appear outside admin-only areas). Keep user-facing errors in English."
         },
         {
-          "path": "frontend/src/components/live/LivePicksGrid.tsx",
+          "path": "frontend/src/hooks/mutations/useRunSettlementNow.ts",
           "operation": "modify",
-          "description": "Confirm/adjust responsive grid breakpoints for card layout (1 col small, increasing on larger screens) and ensure an English empty state is shown when there are no picks to render. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Add search and status filter controls on Live Picks that jointly filter the visible cards and show an empty results message.",
-      "acceptanceCriteria": [
-        "Search input filters picks by player name or team (case-insensitive).",
-        "Status filter can switch between All, Live, Final, and Upcoming and updates the displayed cards accordingly.",
-        "When no picks match filters, show an in-grid empty results message in English."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/LivePicksPage.tsx",
-          "operation": "modify",
-          "description": "Wire search (player/team, case-insensitive) and status filtering to work together when computing the displayed picks list; ensure the UI clearly reflects filters and the filtered list drives the grid. Verify the component's usage instructions before implementing."
+          "description": "Update mutation to call the real backend runSettlementNow() (remove \"not yet implemented\" branching). Gate the mutation so it can only be triggered when an actor is available and the caller is an admin (use existing admin detection hook). Improve onError handling to surface a clear English message for authorization traps vs unexpected failures, and ensure pending/loading state always clears."
         },
         {
-          "path": "frontend/src/components/live/LivePicksStatusFilter.tsx",
+          "path": "frontend/src/pages/SettingsPage.tsx",
           "operation": "modify",
-          "description": "Confirm the filter options and labels map to the backend GameStatus values and include All/Live/Final/Upcoming. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/live/LivePicksGrid.tsx",
-          "operation": "modify",
-          "description": "Update the empty-results rendering to be an in-grid message (English) when the filtered list is empty (distinct from the overall 'no picks available' page-level empty state). Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Fetch live picks with periodic polling and show standard loading/error states plus a human-friendly Last updated timestamp when available.",
-      "acceptanceCriteria": [
-        "While fetching, show a loading state with English text (e.g., \"Loading live picks...\").",
-        "If the query fails, show the existing error UI state.",
-        "Live picks refresh automatically on an interval (polling) without requiring manual page reload.",
-        "If a last-updated timestamp is available from the backend, display it on the page in human-friendly relative time (English)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/queries/useLivePicks.ts",
-          "operation": "modify",
-          "description": "Ensure live picks data is fetched via React Query with polling enabled while actor+identity are available, and that failures propagate to the page for standard error UI. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/queries/useLivePicksLastUpdated.ts",
-          "operation": "modify",
-          "description": "Ensure the last-updated timestamp is fetched via React Query with polling enabled while actor+identity are available, and that failures propagate to the page for standard error UI. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/LivePicksPage.tsx",
-          "operation": "modify",
-          "description": "Show the standard loading UI while queries are in-flight; if any of the Live Picks fetches fail (picks/timestamp/diagnostics), render the existing ErrorState; and display a human-friendly relative \"Last updated\" when a non-zero timestamp is available. Verify the component's usage instructions before implementing."
+          "description": "Ensure the admin Settlement section’s trigger action uses useRunSettlementNow and reflects pending state (disable button / show running text). Confirm that, on success, the page updates diagnostics and metrics without reload (via existing React Query invalidation). Ensure any visible error messaging remains in English and that non-admin users do not see settlement controls (rely on existing AdminOnly gate plus hook gating to avoid background trap errors)."
         }
       ]
     }

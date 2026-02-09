@@ -1,75 +1,91 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T01:42:58.405Z",
-  "summary": "The diff does not show any frontend implementation for the /live page, filtering controls, or polling UI states. Backend changes shown are limited to type definitions; the required Live Picks read APIs are not evidenced in the truncated backend diff. Several additional backend domain types appear that are not requested and may conflict with stated non-goals (e.g., wager-related fields).",
+  "generatedAt": "2026-02-09T02:46:42.574Z",
+  "summary": "Frontend hooks and Settings page wiring for running settlement and fetching diagnostics/metrics were added/updated, but the diff evidence does not show the required backend Candid methods or the actual settlement/metrics computation logic being implemented. Several unrelated frontend route/layout/about/parlay/edge-board changes appear in the diff summary but were not requested.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Add a Live Picks page at route \"/live\" requiring Internet Identity login and displaying live picks in a responsive card grid with an empty state.",
-      "reason": "No frontend files were modified/added in the diff; nothing indicates a new route, page component, AppLayout integration, auth-gating UI, responsive grid, or empty state messaging.",
+      "requirement": "Implement backend settlement engine APIs: runSettlementNow (admin-only), getSettlementDiagnostics (admin-only), getSettlementMetrics (authenticated), with complete SettlementDiagnostics/SettlementMetrics shapes and non-trapping behavior for authorized callers.",
+      "reason": "backend/main.mo is truncated and only shows type definitions being added (SettlementDiagnostics/SettlementMetrics). There is no visible evidence in the diff summary of the Candid-exposed methods (runSettlementNow/getSettlementDiagnostics/getSettlementMetrics) being implemented or of the admin/authenticated authorization behavior and error messages.",
       "evidence": [
-        "File diff summary shows only modified: backend/main.mo, project_state.json; no frontend changes"
+        "backend/main.mo (truncated)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Add search (player/team) and status filter (All/Live/Final/Upcoming) that jointly filter visible picks and show an empty results message.",
-      "reason": "No frontend changes are present to implement search/filter controls or filter logic/UI states.",
+      "requirement": "Add backend logic to settle eligible predictions in settleablePredictions during runSettlementNow(), update diagnostics counters/timestamps (attempt/success/failure), deterministically set outcome/resultValue, and succeed with numSettledInLastRun=0 when nothing eligible exists.",
+      "reason": "No visible code in the provided backend diff excerpt shows iteration over settleablePredictions, eligibility checks (active + completed), deterministic outcome assignment, or diagnostics updates; the backend diff is truncated before any such logic is shown.",
       "evidence": [
-        "File diff summary shows only modified: backend/main.mo, project_state.json; no frontend changes"
+        "backend/main.mo (truncated)"
       ]
     },
     {
       "id": "REQ-3",
-      "requirement": "Fetch Live Picks from backend with periodic polling; show loading/error states and a human-friendly relative \"Last updated\" timestamp when available.",
-      "reason": "No frontend data-fetching code changes are shown (e.g., React Query polling, loading text, last-updated rendering).",
+      "requirement": "Compute settlement metrics in getSettlementMetrics() from settled predictions: totalSettled/totalWon/totalLost/totalPush, sevenDayWinRate (0..1), totalROI (safe defaults), returning zeros when none settled.",
+      "reason": "The diff shows the SettlementMetrics type definition in backend/main.mo, but does not show any backend implementation that calculates these metrics from settleablePredictions or enforces safe numeric behavior (no NaN/Infinity).",
       "evidence": [
-        "File diff summary shows only modified: backend/main.mo, project_state.json; no frontend changes"
+        "backend/main.mo (truncated)"
       ]
     },
     {
       "id": "REQ-4",
-      "requirement": "Backend exposes getLivePicks(), getLivePicksLastUpdated(), and getLivePicksDiagnostics() usable by authenticated frontend.",
-      "reason": "The truncated backend diff shows type definitions (e.g., LivePick, LivePicksDiagnostics) but does not show public methods getLivePicks/getLivePicksLastUpdated/getLivePicksDiagnostics being implemented or exported.",
+      "requirement": "Update frontend settlement flow end-to-end: admin Settings action triggers runSettlementNow and on success updates diagnostics and metrics via React Query invalidation; show English error messages and avoid stuck loading.",
+      "reason": "Hooks for runSettlementNow and queries are updated and include invalidations, but SettingsPage.tsx is truncated before showing the actual admin-only settlement UI section using these hooks (button wiring/loading states/error handling). The build request also requires end-to-end use of new backend methods; backend implementation evidence is missing.",
       "evidence": [
-        "backend/main.mo"
+        "frontend/src/pages/SettingsPage.tsx (truncated)",
+        "frontend/src/hooks/mutations/useRunSettlementNow.ts",
+        "frontend/src/hooks/queries/useSettlementDiagnostics.ts",
+        "frontend/src/hooks/queries/useSettlementMetrics.ts",
+        "backend/main.mo (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Backend types and fields unrelated to Live Picks page requirements (e.g., UserProfile, SensitivitySettings, VerificationRollingWindow).",
-      "reason": "These are not requested by any REQ and no frontend work depends on them per the BuildRequest.",
+      "description": "TanStack Router / application shell updates (routeTree/App.tsx/AppLayout) unrelated to settlement engine implementation.",
+      "reason": "BuildRequest focuses on settlement backend APIs and Settings page settlement flow; it does not request routing or layout/nav changes.",
       "evidence": [
-        "backend/main.mo"
+        "frontend-file-summaries.txt (frontend/src/App.tsx, frontend/src/routeTree.tsx, frontend/src/components/layout/AppLayout.tsx)"
       ]
     },
     {
-      "description": "Settlement/wager-like modeling in backend types (e.g., SettlementOutcome, SettlementStatus, SettleablePrediction.betAmount).",
-      "reason": "BuildRequest non-goals explicitly include not implementing real-money wagering or storing user pick selections; introducing wager-like fields is out of scope and potentially conflicting.",
+      "description": "Edge Board page and Prop Detail page feature/logic updates unrelated to settlement engine.",
+      "reason": "Not part of settlement engine requirements or acceptance criteria.",
       "evidence": [
-        "backend/main.mo"
+        "frontend-file-summaries.txt (frontend/src/pages/EdgeBoardPage.tsx, frontend/src/pages/PropDetailPage.tsx)"
       ]
     },
     {
-      "description": "OpticOddsConnectionResult and http outcalls import usage scaffolding.",
-      "reason": "Backend connectivity/health result types and outcall scaffolding are not requested by the Live Picks page requirements as stated (only read APIs for live picks, last updated, diagnostics).",
+      "description": "Parlay builder state/UI enhancements (max legs constraints, summary copy, add-to-parlay tooltip) unrelated to settlement engine.",
+      "reason": "Not requested by BuildRequest; settlement work is limited to settlement UI flow on Settings page and backend APIs/logic.",
       "evidence": [
-        "backend/main.mo"
+        "frontend-file-summaries.txt (frontend/src/pages/ParlayBuilderPage.tsx, frontend/src/state/parlay/ParlayProvider.tsx, frontend/src/components/parlay/AddToParlayButton.tsx, frontend/src/components/parlay/CopySummaryButton.tsx)"
       ]
     },
     {
-      "description": "project_state.json updated to add pending feature request entries.",
-      "reason": "Not part of the BuildRequest requirements; appears to be project management metadata rather than implementing requested functionality.",
+      "description": "About page expanded disclaimers/legal/methodology content unrelated to settlement engine.",
+      "reason": "Not requested by BuildRequest.",
       "evidence": [
-        "project_state.json"
+        "frontend-file-summaries.txt (frontend/src/pages/AboutPage.tsx)"
+      ]
+    },
+    {
+      "description": "Generic loading/error component updates unrelated to settlement engine.",
+      "reason": "Not requested; settlement-related UX changes were scoped to the Settings settlement flow error handling.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/src/components/loading/LoadingState.tsx, frontend/src/components/error/ErrorState.tsx)"
       ]
     }
   ],
   "confidence": 0.66,
   "changed_files": [
     "backend/main.mo",
+    "frontend-file-summaries.txt",
+    "frontend/src/hooks/mutations/useRunSettlementNow.ts",
+    "frontend/src/hooks/queries/useSettlementDiagnostics.ts",
+    "frontend/src/hooks/queries/useSettlementMetrics.ts",
+    "frontend/src/pages/SettingsPage.tsx",
     "project_state.json"
   ]
 }
