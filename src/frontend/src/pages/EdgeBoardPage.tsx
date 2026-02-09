@@ -1,7 +1,10 @@
 import { useEdges } from '../hooks/queries/useEdges';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import { useSensitivitySettings } from '../hooks/queries/useSensitivitySettings';
+import { LoginRequiredState } from '../components/auth/LoginRequiredState';
 import { LoadingState } from '../components/loading/LoadingState';
 import { ErrorState } from '../components/error/ErrorState';
-import { AlertCircle, TrendingUp } from 'lucide-react';
+import { AlertCircle, TrendingUp, Filter } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +13,17 @@ import { Link } from '@tanstack/react-router';
 import { AddToParlayButton } from '../components/parlay/AddToParlayButton';
 import { ConfidenceBadge } from '../components/props/ConfidenceBadge';
 import { isHighConfidence } from '../lib/verification/highConfidence';
+import { applyEdgeThreshold } from '../lib/edges/applyEdgeThreshold';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function EdgeBoardPage() {
+  const { identity } = useInternetIdentity();
   const { data: edges, isLoading, error } = useEdges();
+  const { data: settings } = useSensitivitySettings();
+
+  if (!identity) {
+    return <LoginRequiredState />;
+  }
 
   if (isLoading) {
     return <LoadingState message="Loading edge opportunities..." />;
@@ -43,6 +53,31 @@ export default function EdgeBoardPage() {
     );
   }
 
+  // Apply edge threshold filtering
+  const threshold = settings ? Number(settings.edgeThresholdPercentage) : 1;
+  const filteredEdges = applyEdgeThreshold(edges, threshold);
+
+  // Show empty state if filtering removed all edges
+  if (filteredEdges.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+        <div className="rounded-full bg-muted p-6">
+          <Filter className="h-12 w-12 text-muted-foreground" />
+        </div>
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold">No Picks Meet Your Threshold</h2>
+          <p className="text-muted-foreground max-w-md">
+            Your current edge threshold is set to {threshold}%. No picks currently meet this
+            criteria. Try lowering your threshold in Settings to see more opportunities.
+          </p>
+        </div>
+        <Link to="/settings">
+          <Button>Adjust Settings</Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -52,9 +87,16 @@ export default function EdgeBoardPage() {
             High-value opportunities based on line discrepancies
           </p>
         </div>
-        <Badge variant="outline" className="text-lg px-4 py-2">
-          {edges.length} {edges.length === 1 ? 'Edge' : 'Edges'}
-        </Badge>
+        <div className="flex items-center gap-3">
+          {threshold > 1 && (
+            <Badge variant="outline" className="text-sm">
+              Min Edge: {threshold}%
+            </Badge>
+          )}
+          <Badge variant="outline" className="text-lg px-4 py-2">
+            {filteredEdges.length} {filteredEdges.length === 1 ? 'Edge' : 'Edges'}
+          </Badge>
+        </div>
       </div>
 
       <Alert>
@@ -63,11 +105,12 @@ export default function EdgeBoardPage() {
         <AlertDescription>
           Props are flagged when PrizePicks lines differ significantly from sharp sportsbook
           consensus. High Confidence picks have supporting verification data.
+          {threshold > 1 && ` Currently showing edges ≥${threshold}%.`}
         </AlertDescription>
       </Alert>
 
       <div className="grid gap-4">
-        {edges.map((edge) => {
+        {filteredEdges.map((edge) => {
           const highConfidence = isHighConfidence(edge.verification);
           const edgeDirection =
             edge.edge.edgePercentage > 0 ? 'PrizePicks Higher' : 'PrizePicks Lower';

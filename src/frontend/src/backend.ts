@@ -100,19 +100,6 @@ export interface IngestionProviderConfig {
     opticOddsApiKey: string;
     dailyFantasyApiKey: string;
 }
-export interface EdgeCalculation {
-    edgePercentage: number;
-    calcTime: Time;
-    propId: bigint;
-    edgeScore: string;
-    isValid: boolean;
-}
-export interface PlayerPropsWithEdgesView {
-    projections: Array<Projection>;
-    verificationResults: Array<VerificationResult>;
-    prop: PlayerProps;
-    edges: Array<EdgeCalculation>;
-}
 export interface PlayerProps {
     id: bigint;
     source: string;
@@ -127,20 +114,10 @@ export interface PlayerProps {
     lineString: string;
     statCategory: StatCategory;
 }
-export interface http_header {
-    value: string;
-    name: string;
-}
-export interface http_request_result {
-    status: bigint;
-    body: Uint8Array;
-    headers: Array<http_header>;
-}
-export interface VerificationResult {
-    verificationTime: Time;
-    verificationSummary: string;
-    confidenceScore: number;
-    propId: bigint;
+export interface SensitivitySettings {
+    marketAlertsEnabled: boolean;
+    edgeThresholdPercentage: bigint;
+    verificationRollingWindow: VerificationRollingWindow;
 }
 export interface TransformationInput {
     context: Uint8Array;
@@ -153,9 +130,92 @@ export interface Projection {
     propId: bigint;
     isValid: boolean;
 }
+export interface LivePick {
+    id: bigint;
+    source: string;
+    line: number;
+    gameStatus: GameStatus;
+    team: string;
+    lastUpdated: Time;
+    tournament: string;
+    sport: Sport;
+    lineType: LineType;
+    propType: PropType;
+    awayMoneylineOdds?: number;
+    playerName: string;
+    homeMoneylineOdds?: number;
+    lineString: string;
+    statCategory: StatCategory;
+}
+export interface SettleablePrediction {
+    id: bigint;
+    source: string;
+    betAmount?: number;
+    line: number;
+    gameStatus: GameStatus;
+    odds?: number;
+    team: string;
+    lastUpdated: Time;
+    tournament: string;
+    settlementStatus: SettlementStatus;
+    sport: Sport;
+    lineType: LineType;
+    propType: PropType;
+    playerName: string;
+    resultValue?: number;
+    outcome?: SettlementOutcome;
+    lineString: string;
+    statCategory: StatCategory;
+}
+export interface PlayerPropsWithEdgesView {
+    projections: Array<Projection>;
+    verificationResults: Array<VerificationResult>;
+    prop: PlayerProps;
+    edges: Array<EdgeCalculation>;
+}
+export interface EdgeCalculation {
+    edgePercentage: number;
+    calcTime: Time;
+    propId: bigint;
+    edgeScore: string;
+    isValid: boolean;
+}
+export interface http_header {
+    value: string;
+    name: string;
+}
+export interface http_request_result {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<http_header>;
+}
+export interface OpticOddsConnectionResult {
+    healthy: boolean;
+    message: string;
+    timestamp: Time;
+    statusCode?: bigint;
+    responseBody?: string;
+}
+export interface VerificationResult {
+    verificationTime: Time;
+    verificationSummary: string;
+    confidenceScore: number;
+    propId: bigint;
+}
+export interface LivePicksDiagnostics {
+    lastFailureMessage: string;
+    totalFailures: bigint;
+    lastSuccess: Time;
+    totalAttempts: bigint;
+    lastFailure: Time;
+    totalSuccesses: bigint;
+    lastAttempt: Time;
+    numLivePicks: bigint;
+}
 export interface UserProfile {
     notificationPreferences: boolean;
     name: string;
+    sensitivitySettings: SensitivitySettings;
     favoriteTeams: Array<string>;
 }
 export interface CoachRatingD {
@@ -166,6 +226,11 @@ export interface CoachRatingD {
     coachID: bigint;
     defensiveRating: number;
     lineupAdjustments: string;
+}
+export enum GameStatus {
+    notStarted = "notStarted",
+    completed = "completed",
+    inProgress = "inProgress"
 }
 export enum LineType {
     prizePicks = "prizePicks",
@@ -180,6 +245,15 @@ export enum PropType {
     playerPassingYards = "playerPassingYards",
     playerAssists = "playerAssists",
     playerPoints = "playerPoints"
+}
+export enum SettlementOutcome {
+    won = "won",
+    lost = "lost",
+    push = "push"
+}
+export enum SettlementStatus {
+    active = "active",
+    settled = "settled"
 }
 export enum Sport {
     mlb = "mlb",
@@ -198,29 +272,43 @@ export enum UserRole {
     user = "user",
     guest = "guest"
 }
+export enum VerificationRollingWindow {
+    last3Games = "last3Games",
+    seasonAverage = "seasonAverage"
+}
 export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    getActivePredictionsCount(): Promise<bigint>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCoachRating(coachId: bigint): Promise<CoachRatingD | null>;
     getEdgesSorted(invalidIncluded: boolean): Promise<Array<EdgeCalculation>>;
+    getLivePicks(): Promise<Array<LivePick>>;
+    getLivePicksDiagnostics(): Promise<LivePicksDiagnostics>;
+    getLivePicksLastUpdated(): Promise<Time>;
     getNBAPlayerProps(): Promise<Array<PlayerProps>>;
     getPlayerProp(propId: bigint): Promise<PlayerProps | null>;
     getPlayerPropsWithEdges(propId: bigint): Promise<PlayerPropsWithEdgesView | null>;
     getProjection(propId: bigint): Promise<Projection | null>;
     getProviderConfig(): Promise<IngestionProviderConfig | null>;
+    getSettleablePrediction(predictionId: bigint): Promise<SettleablePrediction | null>;
     getSource(): Promise<string>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getUserSensitivitySettings(): Promise<SensitivitySettings | null>;
     getVerificationResult(propId: bigint): Promise<VerificationResult | null>;
     importData(): Promise<string>;
     isCallerAdmin(): Promise<boolean>;
+    refreshLivePicksInternal(): Promise<void>;
+    register(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveOrUpdateProp(prop: PlayerProps): Promise<void>;
     saveProviderConfig(config: IngestionProviderConfig): Promise<void>;
+    testOpticOddsConnection(): Promise<OpticOddsConnectionResult>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
+    updateSensitivitySettings(newSettings: SensitivitySettings): Promise<void>;
 }
-import type { CoachRatingD as _CoachRatingD, EdgeCalculation as _EdgeCalculation, IngestionProviderConfig as _IngestionProviderConfig, LineType as _LineType, PlayerProps as _PlayerProps, PlayerPropsWithEdgesView as _PlayerPropsWithEdgesView, Projection as _Projection, ProjectionType as _ProjectionType, PropType as _PropType, Sport as _Sport, StatCategory as _StatCategory, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, VerificationResult as _VerificationResult } from "./declarations/backend.did.d.ts";
+import type { CoachRatingD as _CoachRatingD, EdgeCalculation as _EdgeCalculation, GameStatus as _GameStatus, IngestionProviderConfig as _IngestionProviderConfig, LineType as _LineType, LivePick as _LivePick, OpticOddsConnectionResult as _OpticOddsConnectionResult, PlayerProps as _PlayerProps, PlayerPropsWithEdgesView as _PlayerPropsWithEdgesView, Projection as _Projection, ProjectionType as _ProjectionType, PropType as _PropType, SensitivitySettings as _SensitivitySettings, SettleablePrediction as _SettleablePrediction, SettlementOutcome as _SettlementOutcome, SettlementStatus as _SettlementStatus, Sport as _Sport, StatCategory as _StatCategory, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, VerificationResult as _VerificationResult, VerificationRollingWindow as _VerificationRollingWindow } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -251,6 +339,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getActivePredictionsCount(): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getActivePredictionsCount();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getActivePredictionsCount();
+            return result;
+        }
+    }
     async getCallerUserProfile(): Promise<UserProfile | null> {
         if (this.processError) {
             try {
@@ -269,28 +371,28 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n4(this._uploadFile, this._downloadFile, result);
+                return from_candid_UserRole_n10(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n4(this._uploadFile, this._downloadFile, result);
+            return from_candid_UserRole_n10(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCoachRating(arg0: bigint): Promise<CoachRatingD | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCoachRating(arg0);
-                return from_candid_opt_n6(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n12(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCoachRating(arg0);
-            return from_candid_opt_n6(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n12(this._uploadFile, this._downloadFile, result);
         }
     }
     async getEdgesSorted(arg0: boolean): Promise<Array<EdgeCalculation>> {
@@ -307,74 +409,130 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getLivePicks(): Promise<Array<LivePick>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getLivePicks();
+                return from_candid_vec_n17(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getLivePicks();
+            return from_candid_vec_n17(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getLivePicksDiagnostics(): Promise<LivePicksDiagnostics> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getLivePicksDiagnostics();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getLivePicksDiagnostics();
+            return result;
+        }
+    }
+    async getLivePicksLastUpdated(): Promise<Time> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getLivePicksLastUpdated();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getLivePicksLastUpdated();
+            return result;
+        }
+    }
     async getNBAPlayerProps(): Promise<Array<PlayerProps>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getNBAPlayerProps();
-                return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getNBAPlayerProps();
-            return from_candid_vec_n11(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
         }
     }
     async getPlayerProp(arg0: bigint): Promise<PlayerProps | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getPlayerProp(arg0);
-                return from_candid_opt_n20(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n32(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getPlayerProp(arg0);
-            return from_candid_opt_n20(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n32(this._uploadFile, this._downloadFile, result);
         }
     }
     async getPlayerPropsWithEdges(arg0: bigint): Promise<PlayerPropsWithEdgesView | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getPlayerPropsWithEdges(arg0);
-                return from_candid_opt_n21(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getPlayerPropsWithEdges(arg0);
-            return from_candid_opt_n21(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
         }
     }
     async getProjection(arg0: bigint): Promise<Projection | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getProjection(arg0);
-                return from_candid_opt_n29(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n41(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getProjection(arg0);
-            return from_candid_opt_n29(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n41(this._uploadFile, this._downloadFile, result);
         }
     }
     async getProviderConfig(): Promise<IngestionProviderConfig | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getProviderConfig();
-                return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n42(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getProviderConfig();
-            return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n42(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getSettleablePrediction(arg0: bigint): Promise<SettleablePrediction | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getSettleablePrediction(arg0);
+                return from_candid_opt_n43(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getSettleablePrediction(arg0);
+            return from_candid_opt_n43(this._uploadFile, this._downloadFile, result);
         }
     }
     async getSource(): Promise<string> {
@@ -405,18 +563,32 @@ export class Backend implements backendInterface {
             return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getUserSensitivitySettings(): Promise<SensitivitySettings | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getUserSensitivitySettings();
+                return from_candid_opt_n51(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getUserSensitivitySettings();
+            return from_candid_opt_n51(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getVerificationResult(arg0: bigint): Promise<VerificationResult | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getVerificationResult(arg0);
-                return from_candid_opt_n31(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n52(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getVerificationResult(arg0);
-            return from_candid_opt_n31(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n52(this._uploadFile, this._downloadFile, result);
         }
     }
     async importData(): Promise<string> {
@@ -447,31 +619,59 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
+    async refreshLivePicksInternal(): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.saveCallerUserProfile(arg0);
+                const result = await this.actor.refreshLivePicksInternal();
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.saveCallerUserProfile(arg0);
+            const result = await this.actor.refreshLivePicksInternal();
+            return result;
+        }
+    }
+    async register(): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.register();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.register();
+            return result;
+        }
+    }
+    async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n53(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n53(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
     async saveOrUpdateProp(arg0: PlayerProps): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.saveOrUpdateProp(to_candid_PlayerProps_n32(this._uploadFile, this._downloadFile, arg0));
+                const result = await this.actor.saveOrUpdateProp(to_candid_PlayerProps_n59(this._uploadFile, this._downloadFile, arg0));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.saveOrUpdateProp(to_candid_PlayerProps_n32(this._uploadFile, this._downloadFile, arg0));
+            const result = await this.actor.saveOrUpdateProp(to_candid_PlayerProps_n59(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
@@ -489,6 +689,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async testOpticOddsConnection(): Promise<OpticOddsConnectionResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.testOpticOddsConnection();
+                return from_candid_OpticOddsConnectionResult_n69(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.testOpticOddsConnection();
+            return from_candid_OpticOddsConnectionResult_n69(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async transform(arg0: TransformationInput): Promise<TransformationOutput> {
         if (this.processError) {
             try {
@@ -503,140 +717,118 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async updateSensitivitySettings(arg0: SensitivitySettings): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateSensitivitySettings(to_candid_SensitivitySettings_n55(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateSensitivitySettings(to_candid_SensitivitySettings_n55(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
 }
-function from_candid_CoachRatingD_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CoachRatingD): CoachRatingD {
-    return from_candid_record_n8(_uploadFile, _downloadFile, value);
+function from_candid_CoachRatingD_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CoachRatingD): CoachRatingD {
+    return from_candid_record_n14(_uploadFile, _downloadFile, value);
 }
-function from_candid_LineType_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _LineType): LineType {
-    return from_candid_variant_n15(_uploadFile, _downloadFile, value);
+function from_candid_GameStatus_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _GameStatus): GameStatus {
+    return from_candid_variant_n21(_uploadFile, _downloadFile, value);
 }
-function from_candid_PlayerPropsWithEdgesView_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _PlayerPropsWithEdgesView): PlayerPropsWithEdgesView {
-    return from_candid_record_n23(_uploadFile, _downloadFile, value);
+function from_candid_LineType_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _LineType): LineType {
+    return from_candid_variant_n23(_uploadFile, _downloadFile, value);
 }
-function from_candid_PlayerProps_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _PlayerProps): PlayerProps {
-    return from_candid_record_n13(_uploadFile, _downloadFile, value);
+function from_candid_LivePick_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _LivePick): LivePick {
+    return from_candid_record_n19(_uploadFile, _downloadFile, value);
 }
-function from_candid_ProjectionType_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ProjectionType): ProjectionType {
+function from_candid_OpticOddsConnectionResult_n69(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _OpticOddsConnectionResult): OpticOddsConnectionResult {
+    return from_candid_record_n70(_uploadFile, _downloadFile, value);
+}
+function from_candid_PlayerPropsWithEdgesView_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _PlayerPropsWithEdgesView): PlayerPropsWithEdgesView {
+    return from_candid_record_n35(_uploadFile, _downloadFile, value);
+}
+function from_candid_PlayerProps_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _PlayerProps): PlayerProps {
+    return from_candid_record_n31(_uploadFile, _downloadFile, value);
+}
+function from_candid_ProjectionType_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ProjectionType): ProjectionType {
+    return from_candid_variant_n40(_uploadFile, _downloadFile, value);
+}
+function from_candid_Projection_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Projection): Projection {
+    return from_candid_record_n38(_uploadFile, _downloadFile, value);
+}
+function from_candid_PropType_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _PropType): PropType {
+    return from_candid_variant_n25(_uploadFile, _downloadFile, value);
+}
+function from_candid_SensitivitySettings_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _SensitivitySettings): SensitivitySettings {
+    return from_candid_record_n7(_uploadFile, _downloadFile, value);
+}
+function from_candid_SettleablePrediction_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _SettleablePrediction): SettleablePrediction {
+    return from_candid_record_n45(_uploadFile, _downloadFile, value);
+}
+function from_candid_SettlementOutcome_n49(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _SettlementOutcome): SettlementOutcome {
+    return from_candid_variant_n50(_uploadFile, _downloadFile, value);
+}
+function from_candid_SettlementStatus_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _SettlementStatus): SettlementStatus {
+    return from_candid_variant_n47(_uploadFile, _downloadFile, value);
+}
+function from_candid_Sport_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Sport): Sport {
+    return from_candid_variant_n16(_uploadFile, _downloadFile, value);
+}
+function from_candid_StatCategory_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _StatCategory): StatCategory {
     return from_candid_variant_n28(_uploadFile, _downloadFile, value);
 }
-function from_candid_Projection_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Projection): Projection {
-    return from_candid_record_n26(_uploadFile, _downloadFile, value);
+function from_candid_UserProfile_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserProfile): UserProfile {
+    return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-function from_candid_PropType_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _PropType): PropType {
-    return from_candid_variant_n17(_uploadFile, _downloadFile, value);
+function from_candid_UserRole_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n11(_uploadFile, _downloadFile, value);
 }
-function from_candid_Sport_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Sport): Sport {
-    return from_candid_variant_n10(_uploadFile, _downloadFile, value);
+function from_candid_VerificationRollingWindow_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _VerificationRollingWindow): VerificationRollingWindow {
+    return from_candid_variant_n9(_uploadFile, _downloadFile, value);
 }
-function from_candid_StatCategory_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _StatCategory): StatCategory {
-    return from_candid_variant_n19(_uploadFile, _downloadFile, value);
+function from_candid_opt_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_CoachRatingD]): CoachRatingD | null {
+    return value.length === 0 ? null : from_candid_CoachRatingD_n13(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_UserRole_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n5(_uploadFile, _downloadFile, value);
-}
-function from_candid_opt_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_PlayerProps]): PlayerProps | null {
-    return value.length === 0 ? null : from_candid_PlayerProps_n12(_uploadFile, _downloadFile, value[0]);
-}
-function from_candid_opt_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_PlayerPropsWithEdgesView]): PlayerPropsWithEdgesView | null {
-    return value.length === 0 ? null : from_candid_PlayerPropsWithEdgesView_n22(_uploadFile, _downloadFile, value[0]);
-}
-function from_candid_opt_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Projection]): Projection | null {
-    return value.length === 0 ? null : from_candid_Projection_n25(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [number]): number | null {
+    return value.length === 0 ? null : value[0];
 }
 function from_candid_opt_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+    return value.length === 0 ? null : from_candid_UserProfile_n4(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_PlayerProps]): PlayerProps | null {
+    return value.length === 0 ? null : from_candid_PlayerProps_n30(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_PlayerPropsWithEdgesView]): PlayerPropsWithEdgesView | null {
+    return value.length === 0 ? null : from_candid_PlayerPropsWithEdgesView_n34(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Projection]): Projection | null {
+    return value.length === 0 ? null : from_candid_Projection_n37(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_IngestionProviderConfig]): IngestionProviderConfig | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_IngestionProviderConfig]): IngestionProviderConfig | null {
+function from_candid_opt_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_SettleablePrediction]): SettleablePrediction | null {
+    return value.length === 0 ? null : from_candid_SettleablePrediction_n44(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n48(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_SettlementOutcome]): SettlementOutcome | null {
+    return value.length === 0 ? null : from_candid_SettlementOutcome_n49(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n51(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_SensitivitySettings]): SensitivitySettings | null {
+    return value.length === 0 ? null : from_candid_SensitivitySettings_n6(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n52(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_VerificationResult]): VerificationResult | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_VerificationResult]): VerificationResult | null {
+function from_candid_opt_n71(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_CoachRatingD]): CoachRatingD | null {
-    return value.length === 0 ? null : from_candid_CoachRatingD_n7(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n72(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
+    return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    id: bigint;
-    source: string;
-    line: number;
-    team: string;
-    lastUpdated: _Time;
-    tournament: string;
-    sport: _Sport;
-    lineType: _LineType;
-    propType: _PropType;
-    playerName: string;
-    lineString: string;
-    statCategory: _StatCategory;
-}): {
-    id: bigint;
-    source: string;
-    line: number;
-    team: string;
-    lastUpdated: Time;
-    tournament: string;
-    sport: Sport;
-    lineType: LineType;
-    propType: PropType;
-    playerName: string;
-    lineString: string;
-    statCategory: StatCategory;
-} {
-    return {
-        id: value.id,
-        source: value.source,
-        line: value.line,
-        team: value.team,
-        lastUpdated: value.lastUpdated,
-        tournament: value.tournament,
-        sport: from_candid_Sport_n9(_uploadFile, _downloadFile, value.sport),
-        lineType: from_candid_LineType_n14(_uploadFile, _downloadFile, value.lineType),
-        propType: from_candid_PropType_n16(_uploadFile, _downloadFile, value.propType),
-        playerName: value.playerName,
-        lineString: value.lineString,
-        statCategory: from_candid_StatCategory_n18(_uploadFile, _downloadFile, value.statCategory)
-    };
-}
-function from_candid_record_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    projections: Array<_Projection>;
-    verificationResults: Array<_VerificationResult>;
-    prop: _PlayerProps;
-    edges: Array<_EdgeCalculation>;
-}): {
-    projections: Array<Projection>;
-    verificationResults: Array<VerificationResult>;
-    prop: PlayerProps;
-    edges: Array<EdgeCalculation>;
-} {
-    return {
-        projections: from_candid_vec_n24(_uploadFile, _downloadFile, value.projections),
-        verificationResults: value.verificationResults,
-        prop: from_candid_PlayerProps_n12(_uploadFile, _downloadFile, value.prop),
-        edges: value.edges
-    };
-}
-function from_candid_record_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    value: number;
-    calcTime: _Time;
-    projectionType: _ProjectionType;
-    propId: bigint;
-    isValid: boolean;
-}): {
-    value: number;
-    calcTime: Time;
-    projectionType: ProjectionType;
-    propId: bigint;
-    isValid: boolean;
-} {
-    return {
-        value: value.value,
-        calcTime: value.calcTime,
-        projectionType: from_candid_ProjectionType_n27(_uploadFile, _downloadFile, value.projectionType),
-        propId: value.propId,
-        isValid: value.isValid
-    };
-}
-function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     name: string;
     team: string;
     lastUpdated: _Time;
@@ -657,13 +849,268 @@ function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint
         name: value.name,
         team: value.team,
         lastUpdated: value.lastUpdated,
-        sport: from_candid_Sport_n9(_uploadFile, _downloadFile, value.sport),
+        sport: from_candid_Sport_n15(_uploadFile, _downloadFile, value.sport),
         coachID: value.coachID,
         defensiveRating: value.defensiveRating,
         lineupAdjustments: value.lineupAdjustments
     };
 }
-function from_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: bigint;
+    source: string;
+    line: number;
+    gameStatus: _GameStatus;
+    team: string;
+    lastUpdated: _Time;
+    tournament: string;
+    sport: _Sport;
+    lineType: _LineType;
+    propType: _PropType;
+    awayMoneylineOdds: [] | [number];
+    playerName: string;
+    homeMoneylineOdds: [] | [number];
+    lineString: string;
+    statCategory: _StatCategory;
+}): {
+    id: bigint;
+    source: string;
+    line: number;
+    gameStatus: GameStatus;
+    team: string;
+    lastUpdated: Time;
+    tournament: string;
+    sport: Sport;
+    lineType: LineType;
+    propType: PropType;
+    awayMoneylineOdds?: number;
+    playerName: string;
+    homeMoneylineOdds?: number;
+    lineString: string;
+    statCategory: StatCategory;
+} {
+    return {
+        id: value.id,
+        source: value.source,
+        line: value.line,
+        gameStatus: from_candid_GameStatus_n20(_uploadFile, _downloadFile, value.gameStatus),
+        team: value.team,
+        lastUpdated: value.lastUpdated,
+        tournament: value.tournament,
+        sport: from_candid_Sport_n15(_uploadFile, _downloadFile, value.sport),
+        lineType: from_candid_LineType_n22(_uploadFile, _downloadFile, value.lineType),
+        propType: from_candid_PropType_n24(_uploadFile, _downloadFile, value.propType),
+        awayMoneylineOdds: record_opt_to_undefined(from_candid_opt_n26(_uploadFile, _downloadFile, value.awayMoneylineOdds)),
+        playerName: value.playerName,
+        homeMoneylineOdds: record_opt_to_undefined(from_candid_opt_n26(_uploadFile, _downloadFile, value.homeMoneylineOdds)),
+        lineString: value.lineString,
+        statCategory: from_candid_StatCategory_n27(_uploadFile, _downloadFile, value.statCategory)
+    };
+}
+function from_candid_record_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: bigint;
+    source: string;
+    line: number;
+    team: string;
+    lastUpdated: _Time;
+    tournament: string;
+    sport: _Sport;
+    lineType: _LineType;
+    propType: _PropType;
+    playerName: string;
+    lineString: string;
+    statCategory: _StatCategory;
+}): {
+    id: bigint;
+    source: string;
+    line: number;
+    team: string;
+    lastUpdated: Time;
+    tournament: string;
+    sport: Sport;
+    lineType: LineType;
+    propType: PropType;
+    playerName: string;
+    lineString: string;
+    statCategory: StatCategory;
+} {
+    return {
+        id: value.id,
+        source: value.source,
+        line: value.line,
+        team: value.team,
+        lastUpdated: value.lastUpdated,
+        tournament: value.tournament,
+        sport: from_candid_Sport_n15(_uploadFile, _downloadFile, value.sport),
+        lineType: from_candid_LineType_n22(_uploadFile, _downloadFile, value.lineType),
+        propType: from_candid_PropType_n24(_uploadFile, _downloadFile, value.propType),
+        playerName: value.playerName,
+        lineString: value.lineString,
+        statCategory: from_candid_StatCategory_n27(_uploadFile, _downloadFile, value.statCategory)
+    };
+}
+function from_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    projections: Array<_Projection>;
+    verificationResults: Array<_VerificationResult>;
+    prop: _PlayerProps;
+    edges: Array<_EdgeCalculation>;
+}): {
+    projections: Array<Projection>;
+    verificationResults: Array<VerificationResult>;
+    prop: PlayerProps;
+    edges: Array<EdgeCalculation>;
+} {
+    return {
+        projections: from_candid_vec_n36(_uploadFile, _downloadFile, value.projections),
+        verificationResults: value.verificationResults,
+        prop: from_candid_PlayerProps_n30(_uploadFile, _downloadFile, value.prop),
+        edges: value.edges
+    };
+}
+function from_candid_record_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    value: number;
+    calcTime: _Time;
+    projectionType: _ProjectionType;
+    propId: bigint;
+    isValid: boolean;
+}): {
+    value: number;
+    calcTime: Time;
+    projectionType: ProjectionType;
+    propId: bigint;
+    isValid: boolean;
+} {
+    return {
+        value: value.value,
+        calcTime: value.calcTime,
+        projectionType: from_candid_ProjectionType_n39(_uploadFile, _downloadFile, value.projectionType),
+        propId: value.propId,
+        isValid: value.isValid
+    };
+}
+function from_candid_record_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: bigint;
+    source: string;
+    betAmount: [] | [number];
+    line: number;
+    gameStatus: _GameStatus;
+    odds: [] | [number];
+    team: string;
+    lastUpdated: _Time;
+    tournament: string;
+    settlementStatus: _SettlementStatus;
+    sport: _Sport;
+    lineType: _LineType;
+    propType: _PropType;
+    playerName: string;
+    resultValue: [] | [number];
+    outcome: [] | [_SettlementOutcome];
+    lineString: string;
+    statCategory: _StatCategory;
+}): {
+    id: bigint;
+    source: string;
+    betAmount?: number;
+    line: number;
+    gameStatus: GameStatus;
+    odds?: number;
+    team: string;
+    lastUpdated: Time;
+    tournament: string;
+    settlementStatus: SettlementStatus;
+    sport: Sport;
+    lineType: LineType;
+    propType: PropType;
+    playerName: string;
+    resultValue?: number;
+    outcome?: SettlementOutcome;
+    lineString: string;
+    statCategory: StatCategory;
+} {
+    return {
+        id: value.id,
+        source: value.source,
+        betAmount: record_opt_to_undefined(from_candid_opt_n26(_uploadFile, _downloadFile, value.betAmount)),
+        line: value.line,
+        gameStatus: from_candid_GameStatus_n20(_uploadFile, _downloadFile, value.gameStatus),
+        odds: record_opt_to_undefined(from_candid_opt_n26(_uploadFile, _downloadFile, value.odds)),
+        team: value.team,
+        lastUpdated: value.lastUpdated,
+        tournament: value.tournament,
+        settlementStatus: from_candid_SettlementStatus_n46(_uploadFile, _downloadFile, value.settlementStatus),
+        sport: from_candid_Sport_n15(_uploadFile, _downloadFile, value.sport),
+        lineType: from_candid_LineType_n22(_uploadFile, _downloadFile, value.lineType),
+        propType: from_candid_PropType_n24(_uploadFile, _downloadFile, value.propType),
+        playerName: value.playerName,
+        resultValue: record_opt_to_undefined(from_candid_opt_n26(_uploadFile, _downloadFile, value.resultValue)),
+        outcome: record_opt_to_undefined(from_candid_opt_n48(_uploadFile, _downloadFile, value.outcome)),
+        lineString: value.lineString,
+        statCategory: from_candid_StatCategory_n27(_uploadFile, _downloadFile, value.statCategory)
+    };
+}
+function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    notificationPreferences: boolean;
+    name: string;
+    sensitivitySettings: _SensitivitySettings;
+    favoriteTeams: Array<string>;
+}): {
+    notificationPreferences: boolean;
+    name: string;
+    sensitivitySettings: SensitivitySettings;
+    favoriteTeams: Array<string>;
+} {
+    return {
+        notificationPreferences: value.notificationPreferences,
+        name: value.name,
+        sensitivitySettings: from_candid_SensitivitySettings_n6(_uploadFile, _downloadFile, value.sensitivitySettings),
+        favoriteTeams: value.favoriteTeams
+    };
+}
+function from_candid_record_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    marketAlertsEnabled: boolean;
+    edgeThresholdPercentage: bigint;
+    verificationRollingWindow: _VerificationRollingWindow;
+}): {
+    marketAlertsEnabled: boolean;
+    edgeThresholdPercentage: bigint;
+    verificationRollingWindow: VerificationRollingWindow;
+} {
+    return {
+        marketAlertsEnabled: value.marketAlertsEnabled,
+        edgeThresholdPercentage: value.edgeThresholdPercentage,
+        verificationRollingWindow: from_candid_VerificationRollingWindow_n8(_uploadFile, _downloadFile, value.verificationRollingWindow)
+    };
+}
+function from_candid_record_n70(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    healthy: boolean;
+    message: string;
+    timestamp: _Time;
+    statusCode: [] | [bigint];
+    responseBody: [] | [string];
+}): {
+    healthy: boolean;
+    message: string;
+    timestamp: Time;
+    statusCode?: bigint;
+    responseBody?: string;
+} {
+    return {
+        healthy: value.healthy,
+        message: value.message,
+        timestamp: value.timestamp,
+        statusCode: record_opt_to_undefined(from_candid_opt_n71(_uploadFile, _downloadFile, value.statusCode)),
+        responseBody: record_opt_to_undefined(from_candid_opt_n72(_uploadFile, _downloadFile, value.responseBody))
+    };
+}
+function from_candid_variant_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    admin: null;
+} | {
+    user: null;
+} | {
+    guest: null;
+}): UserRole {
+    return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
+}
+function from_candid_variant_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     mlb: null;
 } | {
     nba: null;
@@ -672,14 +1119,23 @@ function from_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): Sport {
     return "mlb" in value ? Sport.mlb : "nba" in value ? Sport.nba : "nfl" in value ? Sport.nfl : value;
 }
-function from_candid_variant_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    notStarted: null;
+} | {
+    completed: null;
+} | {
+    inProgress: null;
+}): GameStatus {
+    return "notStarted" in value ? GameStatus.notStarted : "completed" in value ? GameStatus.completed : "inProgress" in value ? GameStatus.inProgress : value;
+}
+function from_candid_variant_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     prizePicks: null;
 } | {
     sportsBook: null;
 }): LineType {
     return "prizePicks" in value ? LineType.prizePicks : "sportsBook" in value ? LineType.sportsBook : value;
 }
-function from_candid_variant_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     playerRebounds: null;
 } | {
     playerPassingYards: null;
@@ -690,7 +1146,7 @@ function from_candid_variant_n17(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): PropType {
     return "playerRebounds" in value ? PropType.playerRebounds : "playerPassingYards" in value ? PropType.playerPassingYards : "playerAssists" in value ? PropType.playerAssists : "playerPoints" in value ? PropType.playerPoints : value;
 }
-function from_candid_variant_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     assists: null;
 } | {
     rebounds: null;
@@ -703,47 +1159,106 @@ function from_candid_variant_n19(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): StatCategory {
     return "assists" in value ? StatCategory.assists : "rebounds" in value ? StatCategory.rebounds : "passingYards" in value ? StatCategory.passingYards : "points" in value ? StatCategory.points : "passesCompleted" in value ? StatCategory.passesCompleted : value;
 }
-function from_candid_variant_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     userCustom: null;
 } | {
     algoGenerated: null;
 }): ProjectionType {
     return "userCustom" in value ? ProjectionType.userCustom : "algoGenerated" in value ? ProjectionType.algoGenerated : value;
 }
-function from_candid_variant_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    admin: null;
+function from_candid_variant_n47(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    active: null;
 } | {
-    user: null;
+    settled: null;
+}): SettlementStatus {
+    return "active" in value ? SettlementStatus.active : "settled" in value ? SettlementStatus.settled : value;
+}
+function from_candid_variant_n50(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    won: null;
 } | {
-    guest: null;
-}): UserRole {
-    return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
+    lost: null;
+} | {
+    push: null;
+}): SettlementOutcome {
+    return "won" in value ? SettlementOutcome.won : "lost" in value ? SettlementOutcome.lost : "push" in value ? SettlementOutcome.push : value;
 }
-function from_candid_vec_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_PlayerProps>): Array<PlayerProps> {
-    return value.map((x)=>from_candid_PlayerProps_n12(_uploadFile, _downloadFile, x));
+function from_candid_variant_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    last3Games: null;
+} | {
+    seasonAverage: null;
+}): VerificationRollingWindow {
+    return "last3Games" in value ? VerificationRollingWindow.last3Games : "seasonAverage" in value ? VerificationRollingWindow.seasonAverage : value;
 }
-function from_candid_vec_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Projection>): Array<Projection> {
-    return value.map((x)=>from_candid_Projection_n25(_uploadFile, _downloadFile, x));
+function from_candid_vec_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_LivePick>): Array<LivePick> {
+    return value.map((x)=>from_candid_LivePick_n18(_uploadFile, _downloadFile, x));
 }
-function to_candid_LineType_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: LineType): _LineType {
-    return to_candid_variant_n37(_uploadFile, _downloadFile, value);
+function from_candid_vec_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_PlayerProps>): Array<PlayerProps> {
+    return value.map((x)=>from_candid_PlayerProps_n30(_uploadFile, _downloadFile, x));
 }
-function to_candid_PlayerProps_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: PlayerProps): _PlayerProps {
-    return to_candid_record_n33(_uploadFile, _downloadFile, value);
+function from_candid_vec_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Projection>): Array<Projection> {
+    return value.map((x)=>from_candid_Projection_n37(_uploadFile, _downloadFile, x));
 }
-function to_candid_PropType_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: PropType): _PropType {
-    return to_candid_variant_n39(_uploadFile, _downloadFile, value);
+function to_candid_LineType_n63(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: LineType): _LineType {
+    return to_candid_variant_n64(_uploadFile, _downloadFile, value);
 }
-function to_candid_Sport_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Sport): _Sport {
-    return to_candid_variant_n35(_uploadFile, _downloadFile, value);
+function to_candid_PlayerProps_n59(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: PlayerProps): _PlayerProps {
+    return to_candid_record_n60(_uploadFile, _downloadFile, value);
 }
-function to_candid_StatCategory_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: StatCategory): _StatCategory {
-    return to_candid_variant_n41(_uploadFile, _downloadFile, value);
+function to_candid_PropType_n65(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: PropType): _PropType {
+    return to_candid_variant_n66(_uploadFile, _downloadFile, value);
+}
+function to_candid_SensitivitySettings_n55(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: SensitivitySettings): _SensitivitySettings {
+    return to_candid_record_n56(_uploadFile, _downloadFile, value);
+}
+function to_candid_Sport_n61(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Sport): _Sport {
+    return to_candid_variant_n62(_uploadFile, _downloadFile, value);
+}
+function to_candid_StatCategory_n67(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: StatCategory): _StatCategory {
+    return to_candid_variant_n68(_uploadFile, _downloadFile, value);
+}
+function to_candid_UserProfile_n53(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserProfile): _UserProfile {
+    return to_candid_record_n54(_uploadFile, _downloadFile, value);
 }
 function to_candid_UserRole_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_record_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function to_candid_VerificationRollingWindow_n57(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: VerificationRollingWindow): _VerificationRollingWindow {
+    return to_candid_variant_n58(_uploadFile, _downloadFile, value);
+}
+function to_candid_record_n54(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    notificationPreferences: boolean;
+    name: string;
+    sensitivitySettings: SensitivitySettings;
+    favoriteTeams: Array<string>;
+}): {
+    notificationPreferences: boolean;
+    name: string;
+    sensitivitySettings: _SensitivitySettings;
+    favoriteTeams: Array<string>;
+} {
+    return {
+        notificationPreferences: value.notificationPreferences,
+        name: value.name,
+        sensitivitySettings: to_candid_SensitivitySettings_n55(_uploadFile, _downloadFile, value.sensitivitySettings),
+        favoriteTeams: value.favoriteTeams
+    };
+}
+function to_candid_record_n56(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    marketAlertsEnabled: boolean;
+    edgeThresholdPercentage: bigint;
+    verificationRollingWindow: VerificationRollingWindow;
+}): {
+    marketAlertsEnabled: boolean;
+    edgeThresholdPercentage: bigint;
+    verificationRollingWindow: _VerificationRollingWindow;
+} {
+    return {
+        marketAlertsEnabled: value.marketAlertsEnabled,
+        edgeThresholdPercentage: value.edgeThresholdPercentage,
+        verificationRollingWindow: to_candid_VerificationRollingWindow_n57(_uploadFile, _downloadFile, value.verificationRollingWindow)
+    };
+}
+function to_candid_record_n60(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
     source: string;
     line: number;
@@ -777,12 +1292,12 @@ function to_candid_record_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         team: value.team,
         lastUpdated: value.lastUpdated,
         tournament: value.tournament,
-        sport: to_candid_Sport_n34(_uploadFile, _downloadFile, value.sport),
-        lineType: to_candid_LineType_n36(_uploadFile, _downloadFile, value.lineType),
-        propType: to_candid_PropType_n38(_uploadFile, _downloadFile, value.propType),
+        sport: to_candid_Sport_n61(_uploadFile, _downloadFile, value.sport),
+        lineType: to_candid_LineType_n63(_uploadFile, _downloadFile, value.lineType),
+        propType: to_candid_PropType_n65(_uploadFile, _downloadFile, value.propType),
         playerName: value.playerName,
         lineString: value.lineString,
-        statCategory: to_candid_StatCategory_n40(_uploadFile, _downloadFile, value.statCategory)
+        statCategory: to_candid_StatCategory_n67(_uploadFile, _downloadFile, value.statCategory)
     };
 }
 function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): {
@@ -800,7 +1315,18 @@ function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         guest: null
     } : value;
 }
-function to_candid_variant_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Sport): {
+function to_candid_variant_n58(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: VerificationRollingWindow): {
+    last3Games: null;
+} | {
+    seasonAverage: null;
+} {
+    return value == VerificationRollingWindow.last3Games ? {
+        last3Games: null
+    } : value == VerificationRollingWindow.seasonAverage ? {
+        seasonAverage: null
+    } : value;
+}
+function to_candid_variant_n62(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Sport): {
     mlb: null;
 } | {
     nba: null;
@@ -815,7 +1341,7 @@ function to_candid_variant_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint
         nfl: null
     } : value;
 }
-function to_candid_variant_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: LineType): {
+function to_candid_variant_n64(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: LineType): {
     prizePicks: null;
 } | {
     sportsBook: null;
@@ -826,7 +1352,7 @@ function to_candid_variant_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint
         sportsBook: null
     } : value;
 }
-function to_candid_variant_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: PropType): {
+function to_candid_variant_n66(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: PropType): {
     playerRebounds: null;
 } | {
     playerPassingYards: null;
@@ -845,7 +1371,7 @@ function to_candid_variant_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint
         playerPoints: null
     } : value;
 }
-function to_candid_variant_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: StatCategory): {
+function to_candid_variant_n68(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: StatCategory): {
     assists: null;
 } | {
     rebounds: null;

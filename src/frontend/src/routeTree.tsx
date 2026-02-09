@@ -1,4 +1,4 @@
-import { createRootRoute, createRoute, Outlet } from '@tanstack/react-router';
+import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router';
 import { AppLayout } from './components/layout/AppLayout';
 import LandingPage from './pages/LandingPage';
 import EdgeBoardPage from './pages/EdgeBoardPage';
@@ -7,6 +7,9 @@ import PropDetailPage from './pages/PropDetailPage';
 import ParlayBuilderPage from './pages/ParlayBuilderPage';
 import SettingsPage from './pages/SettingsPage';
 import AboutPage from './pages/AboutPage';
+import ProfilePage from './pages/ProfilePage';
+import LivePicksPage from './pages/LivePicksPage';
+import { RequireAuth } from './components/auth/RequireAuth';
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -22,34 +25,74 @@ const indexRoute = createRoute({
   component: LandingPage,
 });
 
-const boardRoute = createRoute({
+const edgesRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/board',
-  component: EdgeBoardPage,
+  path: '/edges',
+  component: () => (
+    <RequireAuth>
+      <EdgeBoardPage />
+    </RequireAuth>
+  ),
 });
 
 const propsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/props',
-  component: PropBoardPage,
+  component: () => (
+    <RequireAuth>
+      <PropBoardPage />
+    </RequireAuth>
+  ),
 });
 
 const propDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/prop/$propId',
-  component: PropDetailPage,
+  component: () => (
+    <RequireAuth>
+      <PropDetailPage />
+    </RequireAuth>
+  ),
 });
 
-const parlayBuilderRoute = createRoute({
+const parlayRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/parlay',
-  component: ParlayBuilderPage,
+  component: () => (
+    <RequireAuth>
+      <ParlayBuilderPage />
+    </RequireAuth>
+  ),
 });
 
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
-  component: SettingsPage,
+  component: () => (
+    <RequireAuth>
+      <SettingsPage />
+    </RequireAuth>
+  ),
+});
+
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/profile',
+  component: () => (
+    <RequireAuth>
+      <ProfilePage />
+    </RequireAuth>
+  ),
+});
+
+const liveRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/live',
+  component: () => (
+    <RequireAuth>
+      <LivePicksPage />
+    </RequireAuth>
+  ),
 });
 
 const aboutRoute = createRoute({
@@ -58,12 +101,18 @@ const aboutRoute = createRoute({
   component: AboutPage,
 });
 
-export const routeTree = rootRoute.addChildren([
+const routeTree = rootRoute.addChildren([
   indexRoute,
-  boardRoute,
+  edgesRoute,
   propsRoute,
   propDetailRoute,
-  parlayBuilderRoute,
+  parlayRoute,
   settingsRoute,
+  profileRoute,
+  liveRoute,
   aboutRoute,
 ]);
+
+export const router = createRouter({ routeTree });
+
+export type Router = typeof router;

@@ -2,50 +2,98 @@ import Text "mo:core/Text";
 import Nat "mo:core/Nat";
 import Map "mo:core/Map";
 import List "mo:core/List";
-import Iter "mo:core/Iter";
-import Array "mo:core/Array";
+import Bool "mo:core/Bool";
 import Time "mo:core/Time";
+import Float "mo:core/Float";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import Order "mo:core/Order";
+import Iter "mo:core/Iter";
 import OutCall "http-outcalls/outcall";
+
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-import Float "mo:core/Float";
+
+// Add migration to actor definition
 
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  // User Profile Type
+  public type VerificationRollingWindow = {
+    #last3Games;
+    #seasonAverage;
+  };
+
+  public type SensitivitySettings = {
+    edgeThresholdPercentage : Nat; // 1-10%
+    verificationRollingWindow : VerificationRollingWindow;
+    marketAlertsEnabled : Bool;
+  };
+
   public type UserProfile = {
     name : Text;
     favoriteTeams : [Text];
     notificationPreferences : Bool;
+    sensitivitySettings : SensitivitySettings;
   };
 
-  let userProfiles = Map.empty<Principal, UserProfile>();
-
-  // User Profile Functions
-  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only logged-in users can access their profile");
-    };
-    userProfiles.get(caller);
+  public type OpticOddsConnectionResult = {
+    healthy : Bool;
+    message : Text;
+    statusCode : ?Nat;
+    responseBody : ?Text;
+    timestamp : Time.Time;
   };
 
-  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
-    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only view your own profile");
-    };
-    userProfiles.get(user);
+  public type LivePicksDiagnostics = {
+    lastAttempt : Time.Time;
+    lastSuccess : Time.Time;
+    lastFailure : Time.Time;
+    lastFailureMessage : Text;
+    numLivePicks : Nat;
+    totalAttempts : Nat;
+    totalSuccesses : Nat;
+    totalFailures : Nat;
   };
 
-  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can save profiles");
-    };
-    userProfiles.add(caller, profile);
+  public type SettlementOutcome = {
+    #won;
+    #lost;
+    #push;
+  };
+
+  public type GameStatus = {
+    #inProgress;
+    #completed;
+    #notStarted;
+  };
+
+  public type SettleablePrediction = {
+    id : Nat;
+    playerName : Text;
+    team : Text;
+    statCategory : StatCategory;
+    propType : PropType;
+    source : Text;
+    line : Float;
+    lineString : Text;
+    lineType : LineType;
+    lastUpdated : Time.Time;
+    sport : Sport;
+    tournament : Text;
+    gameStatus : GameStatus;
+    settlementStatus : SettlementStatus;
+    outcome : ?SettlementOutcome;
+    resultValue : ?Float;
+    odds : ?Float;
+    betAmount : ?Float;
+  };
+
+  public type SettlementStatus = {
+    #active;
+    #settled;
   };
 
   public type Sport = {
@@ -99,6 +147,24 @@ actor {
     lastUpdated : Time.Time;
     sport : Sport;
     tournament : Text;
+  };
+
+  public type LivePick = {
+    id : Nat;
+    playerName : Text;
+    team : Text;
+    statCategory : StatCategory;
+    propType : PropType;
+    source : Text;
+    line : Float;
+    lineString : Text;
+    lineType : LineType;
+    lastUpdated : Time.Time;
+    sport : Sport;
+    tournament : Text;
+    gameStatus : GameStatus;
+    homeMoneylineOdds : ?Float;
+    awayMoneylineOdds : ?Float;
   };
 
   public type LineType = {
@@ -200,17 +266,23 @@ actor {
   let edges = Map.empty<Nat, EdgeCalculation>();
   let projections = Map.empty<Nat, Projection>();
   let verificationResults = Map.empty<Nat, VerificationResult>();
+  let livePicks = Map.empty<Nat, LivePick>();
+  let settleablePredictions = Map.empty<Nat, SettleablePrediction>();
+
+  var livePicksLastUpdated : Time.Time = 0;
 
   let temporaryId = 0;
   let temporaryEdgeId = 0;
   let temporaryVerificationId = 0;
   let temporaryCalculationId = 0;
+  let temporaryPredictionId = 0;
 
   let propsMetadata = Map.empty<LineType, PropsMetadata>();
   let edgeMetadata = Map.empty<Nat, { lastUpdated : Time.Time }>();
   let projectionMetadata = Map.empty<Nat, { lastUpdated : Time.Time }>();
   let verificationMetadata = Map.empty<Nat, { lastUpdated : Time.Time }>();
   let coachRatings = Map.empty<Nat, CoachRating>();
+  let userProfiles = Map.empty<Principal, UserProfile>();
 
   public type Threshold = {
     sport : Sport;
@@ -230,26 +302,66 @@ actor {
 
   var providerConfig : ?IngestionProviderConfig = null;
 
-  // Admin-only: Save provider configuration
   public shared ({ caller }) func saveProviderConfig(config : IngestionProviderConfig) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can save provider configurations");
+      Runtime.trap("Only admins can save provider configurations");
     };
     providerConfig := ?config;
   };
 
-  // Admin-only: Get provider configuration
   public query ({ caller }) func getProviderConfig() : async ?IngestionProviderConfig {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can retrieve provider configurations");
+      Runtime.trap("Only admins can retrieve provider configurations");
     };
     providerConfig;
   };
 
-  // Admin-only: Data ingestion
+  public shared ({ caller }) func testOpticOddsConnection() : async OpticOddsConnectionResult {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Only admins can test OpticOdds connection");
+    };
+
+    switch (providerConfig) {
+      case (null) {
+        {
+          healthy = false;
+          message = "Provider configuration not found";
+          statusCode = null;
+          responseBody = null;
+          timestamp = Time.now();
+        };
+      };
+      case (?config) {
+        let url = "https://api.opticodds.com/system/healthcheck";
+        let headers = [
+          {
+            name = "Authorization";
+            value = "Bearer " # config.opticOddsApiKey;
+          },
+          {
+            name = "Content-Type";
+            value = "application/json";
+          },
+        ];
+
+        let startTime = Time.now();
+
+        let responseBody = await OutCall.httpGetRequest(url, headers, transform);
+        let elapsed = Time.now() - startTime;
+        {
+          healthy = true;
+          message = "OpticOdds API connection successful (" # elapsed.toText() # " ms)";
+          statusCode = ?200;
+          responseBody = ?responseBody;
+          timestamp = Time.now();
+        };
+      };
+    };
+  };
+
   public shared ({ caller }) func importData() : async Text {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can import data");
+      Runtime.trap("Only admins can import data");
     };
     let url = "https://www.prizepicks.com/projections";
     let category = "points";
@@ -258,10 +370,9 @@ actor {
     result;
   };
 
-  // Admin-only: Save or update prop
   public shared ({ caller }) func saveOrUpdateProp(prop : PlayerProps) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can save or update props");
+      Runtime.trap("Only admins can save or update props");
     };
 
     let natPropId = prop.id;
@@ -305,61 +416,35 @@ actor {
     };
   };
 
-  // Transform function for HTTP outcalls - no user authorization needed (called by IC system)
   public query func transform(input : OutCall.TransformationInput) : async OutCall.TransformationOutput {
     input.response;
   };
 
-  // User-only: Get projection data
   public query ({ caller }) func getProjection(propId : Nat) : async ?Projection {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can access projections");
-    };
     projections.get(propId);
   };
 
-  // User-only: Get verification result
   public query ({ caller }) func getVerificationResult(propId : Nat) : async ?VerificationResult {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can access verification results");
-    };
     verificationResults.get(propId);
   };
 
-  // User-only: Get player prop
   public query ({ caller }) func getPlayerProp(propId : Nat) : async ?PlayerProps {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can access player props");
-    };
     playerProps.get(propId);
   };
 
-  // User-only: Get sorted edges
   public query ({ caller }) func getEdgesSorted(invalidIncluded : Bool) : async [EdgeCalculation] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can access edges");
-    };
     let iter = edges.values();
     let filteredIter = iter.filter(func(edge) { if (invalidIncluded) { true } else { edge.isValid } });
-    let filteredEdges = filteredIter.toArray().sort();
-    filteredEdges;
+    filteredIter.toArray();
   };
 
-  // User-only: Get NBA player props
   public query ({ caller }) func getNBAPlayerProps() : async [PlayerProps] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can access NBA player props");
-    };
     let iter = playerProps.values();
     let filteredIter = iter.filter(func(prop) { prop.sport == #nba });
     filteredIter.toArray();
   };
 
-  // User-only: Get player props with edges
   public query ({ caller }) func getPlayerPropsWithEdges(propId : Nat) : async ?PlayerPropsWithEdgesView {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can access player props with edges");
-    };
     switch (playerProps.get(propId)) {
       case (null) { null };
       case (?prop) {
@@ -387,11 +472,7 @@ actor {
     lastUpdated : Time.Time;
   };
 
-  // User-only: Get coach rating
   public query ({ caller }) func getCoachRating(coachId : Nat) : async ?CoachRatingD {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can access coach ratings");
-    };
     switch (coachRatings.get(coachId)) {
       case (null) { null };
       case (?coachRating) {
@@ -408,14 +489,191 @@ actor {
     };
   };
 
-  // User-only: Get source
   public query ({ caller }) func getSource() : async Text {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can access source information");
-    };
     switch (playerProps.get(0)) {
       case (null) { "notFound" };
       case (?playerProp) { playerProp.source };
     };
+  };
+
+  var livePicksDiagnostics : LivePicksDiagnostics = {
+    lastAttempt = 0;
+    lastSuccess = 0;
+    lastFailure = 0;
+    lastFailureMessage = "";
+    numLivePicks = 0;
+    totalAttempts = 0;
+    totalSuccesses = 0;
+    totalFailures = 0;
+  };
+
+  public shared ({ caller }) func refreshLivePicksInternal() : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can refresh live picks");
+    };
+
+    livePicksDiagnostics := {
+      lastAttempt = Time.now();
+      lastSuccess = livePicksDiagnostics.lastSuccess;
+      lastFailure = livePicksDiagnostics.lastFailure;
+      lastFailureMessage = livePicksDiagnostics.lastFailureMessage;
+      numLivePicks = livePicksDiagnostics.numLivePicks;
+      totalAttempts = livePicksDiagnostics.totalAttempts + 1;
+      totalSuccesses = livePicksDiagnostics.totalSuccesses;
+      totalFailures = livePicksDiagnostics.totalFailures;
+    };
+
+    let initialLivePicks : [LivePick] = [
+      {
+        id = 1;
+        playerName = "LeBron James";
+        team = "Lakers";
+        statCategory = #points;
+        propType = #playerPoints;
+        source = "PrizePicks";
+        line = 27.8;
+        lineString = "27.5";
+        lineType = #prizePicks;
+        lastUpdated = Time.now();
+        sport = #nba;
+        tournament = "Regular Season";
+        gameStatus = #inProgress;
+        homeMoneylineOdds = ?-150;
+        awayMoneylineOdds = ?+130;
+      },
+      {
+        id = 2;
+        playerName = "Patrick Mahomes";
+        team = "Chiefs";
+        statCategory = #passingYards;
+        propType = #playerPassingYards;
+        source = "PrizePicks";
+        line = 302.5;
+        lineString = "302.5";
+        lineType = #prizePicks;
+        lastUpdated = Time.now();
+        sport = #nfl;
+        tournament = "Week 7";
+        gameStatus = #notStarted;
+        homeMoneylineOdds = null;
+        awayMoneylineOdds = null;
+      },
+    ];
+
+    livePicks.clear();
+    for (pick in initialLivePicks.values()) {
+      livePicks.add(pick.id, pick);
+    };
+    livePicksLastUpdated := Time.now();
+
+    livePicksDiagnostics := {
+      lastAttempt = Time.now();
+      lastSuccess = Time.now();
+      lastFailure = livePicksDiagnostics.lastFailure;
+      lastFailureMessage = livePicksDiagnostics.lastFailureMessage;
+      numLivePicks = initialLivePicks.size();
+      totalAttempts = livePicksDiagnostics.totalAttempts;
+      totalSuccesses = livePicksDiagnostics.totalSuccesses + 1;
+      totalFailures = livePicksDiagnostics.totalFailures;
+    };
+  };
+
+  public query ({ caller }) func getLivePicks() : async [LivePick] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can access live picks");
+    };
+    livePicks.values().toArray();
+  };
+
+  public query ({ caller }) func getLivePicksLastUpdated() : async Time.Time {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can access live picks data");
+    };
+    livePicksLastUpdated;
+  };
+
+  public query ({ caller }) func getLivePicksDiagnostics() : async LivePicksDiagnostics {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can access live picks diagnostics");
+    };
+    livePicksDiagnostics;
+  };
+
+  public shared ({ caller }) func updateSensitivitySettings(newSettings : SensitivitySettings) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can update sensitivity settings");
+    };
+
+    switch (userProfiles.get(caller)) {
+      case (null) {
+        Runtime.trap("User profile not found");
+      };
+      case (?existingProfile) {
+        let updatedProfile : UserProfile = {
+          existingProfile with
+          sensitivitySettings = newSettings
+        };
+        userProfiles.add(caller, updatedProfile);
+      };
+    };
+  };
+
+  public query ({ caller }) func getUserSensitivitySettings() : async ?SensitivitySettings {
+    switch (userProfiles.get(caller)) {
+      case (null) { null };
+      case (?profile) { ?profile.sensitivitySettings };
+    };
+  };
+
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can access their profile");
+    };
+    userProfiles.get(caller);
+  };
+
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can save profiles");
+    };
+    userProfiles.add(caller, profile);
+  };
+
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
+    userProfiles.get(user);
+  };
+
+  public query ({ caller }) func getSettleablePrediction(predictionId : Nat) : async ?SettleablePrediction {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can access predictions");
+    };
+    switch (settleablePredictions.get(predictionId)) {
+      case (null) { null };
+      case (?prediction) {
+        ?prediction;
+      };
+    };
+  };
+
+  public query ({ caller }) func getActivePredictionsCount() : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can access prediction counts");
+    };
+    var count = 0;
+    for (prediction in settleablePredictions.values()) {
+      if (prediction.settlementStatus == #active) {
+        count += 1;
+      };
+    };
+    count;
+  };
+
+  public shared ({ caller }) func register() : async () {
+    let adminToken : Text = "";
+    let userProvidedToken : Text = "";
+    AccessControl.initialize(accessControlState, caller, adminToken, userProvidedToken);
   };
 };

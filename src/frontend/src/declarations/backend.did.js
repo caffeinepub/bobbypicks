@@ -13,9 +13,19 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const VerificationRollingWindow = IDL.Variant({
+  'last3Games' : IDL.Null,
+  'seasonAverage' : IDL.Null,
+});
+export const SensitivitySettings = IDL.Record({
+  'marketAlertsEnabled' : IDL.Bool,
+  'edgeThresholdPercentage' : IDL.Nat,
+  'verificationRollingWindow' : VerificationRollingWindow,
+});
 export const UserProfile = IDL.Record({
   'notificationPreferences' : IDL.Bool,
   'name' : IDL.Text,
+  'sensitivitySettings' : SensitivitySettings,
   'favoriteTeams' : IDL.Vec(IDL.Text),
 });
 export const Time = IDL.Int;
@@ -40,6 +50,11 @@ export const EdgeCalculation = IDL.Record({
   'edgeScore' : IDL.Text,
   'isValid' : IDL.Bool,
 });
+export const GameStatus = IDL.Variant({
+  'notStarted' : IDL.Null,
+  'completed' : IDL.Null,
+  'inProgress' : IDL.Null,
+});
 export const LineType = IDL.Variant({
   'prizePicks' : IDL.Null,
   'sportsBook' : IDL.Null,
@@ -56,6 +71,33 @@ export const StatCategory = IDL.Variant({
   'passingYards' : IDL.Null,
   'points' : IDL.Null,
   'passesCompleted' : IDL.Null,
+});
+export const LivePick = IDL.Record({
+  'id' : IDL.Nat,
+  'source' : IDL.Text,
+  'line' : IDL.Float64,
+  'gameStatus' : GameStatus,
+  'team' : IDL.Text,
+  'lastUpdated' : Time,
+  'tournament' : IDL.Text,
+  'sport' : Sport,
+  'lineType' : LineType,
+  'propType' : PropType,
+  'awayMoneylineOdds' : IDL.Opt(IDL.Float64),
+  'playerName' : IDL.Text,
+  'homeMoneylineOdds' : IDL.Opt(IDL.Float64),
+  'lineString' : IDL.Text,
+  'statCategory' : StatCategory,
+});
+export const LivePicksDiagnostics = IDL.Record({
+  'lastFailureMessage' : IDL.Text,
+  'totalFailures' : IDL.Nat,
+  'lastSuccess' : Time,
+  'totalAttempts' : IDL.Nat,
+  'lastFailure' : Time,
+  'totalSuccesses' : IDL.Nat,
+  'lastAttempt' : Time,
+  'numLivePicks' : IDL.Nat,
 });
 export const PlayerProps = IDL.Record({
   'id' : IDL.Nat,
@@ -99,6 +141,42 @@ export const IngestionProviderConfig = IDL.Record({
   'opticOddsApiKey' : IDL.Text,
   'dailyFantasyApiKey' : IDL.Text,
 });
+export const SettlementStatus = IDL.Variant({
+  'active' : IDL.Null,
+  'settled' : IDL.Null,
+});
+export const SettlementOutcome = IDL.Variant({
+  'won' : IDL.Null,
+  'lost' : IDL.Null,
+  'push' : IDL.Null,
+});
+export const SettleablePrediction = IDL.Record({
+  'id' : IDL.Nat,
+  'source' : IDL.Text,
+  'betAmount' : IDL.Opt(IDL.Float64),
+  'line' : IDL.Float64,
+  'gameStatus' : GameStatus,
+  'odds' : IDL.Opt(IDL.Float64),
+  'team' : IDL.Text,
+  'lastUpdated' : Time,
+  'tournament' : IDL.Text,
+  'settlementStatus' : SettlementStatus,
+  'sport' : Sport,
+  'lineType' : LineType,
+  'propType' : PropType,
+  'playerName' : IDL.Text,
+  'resultValue' : IDL.Opt(IDL.Float64),
+  'outcome' : IDL.Opt(SettlementOutcome),
+  'lineString' : IDL.Text,
+  'statCategory' : StatCategory,
+});
+export const OpticOddsConnectionResult = IDL.Record({
+  'healthy' : IDL.Bool,
+  'message' : IDL.Text,
+  'timestamp' : Time,
+  'statusCode' : IDL.Opt(IDL.Nat),
+  'responseBody' : IDL.Opt(IDL.Text),
+});
 export const http_header = IDL.Record({
   'value' : IDL.Text,
   'name' : IDL.Text,
@@ -121,6 +199,7 @@ export const TransformationOutput = IDL.Record({
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'getActivePredictionsCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCoachRating' : IDL.Func([IDL.Nat], [IDL.Opt(CoachRatingD)], ['query']),
@@ -129,6 +208,9 @@ export const idlService = IDL.Service({
       [IDL.Vec(EdgeCalculation)],
       ['query'],
     ),
+  'getLivePicks' : IDL.Func([], [IDL.Vec(LivePick)], ['query']),
+  'getLivePicksDiagnostics' : IDL.Func([], [LivePicksDiagnostics], ['query']),
+  'getLivePicksLastUpdated' : IDL.Func([], [Time], ['query']),
   'getNBAPlayerProps' : IDL.Func([], [IDL.Vec(PlayerProps)], ['query']),
   'getPlayerProp' : IDL.Func([IDL.Nat], [IDL.Opt(PlayerProps)], ['query']),
   'getPlayerPropsWithEdges' : IDL.Func(
@@ -142,10 +224,20 @@ export const idlService = IDL.Service({
       [IDL.Opt(IngestionProviderConfig)],
       ['query'],
     ),
+  'getSettleablePrediction' : IDL.Func(
+      [IDL.Nat],
+      [IDL.Opt(SettleablePrediction)],
+      ['query'],
+    ),
   'getSource' : IDL.Func([], [IDL.Text], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
+  'getUserSensitivitySettings' : IDL.Func(
+      [],
+      [IDL.Opt(SensitivitySettings)],
       ['query'],
     ),
   'getVerificationResult' : IDL.Func(
@@ -155,14 +247,18 @@ export const idlService = IDL.Service({
     ),
   'importData' : IDL.Func([], [IDL.Text], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'refreshLivePicksInternal' : IDL.Func([], [], []),
+  'register' : IDL.Func([], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'saveOrUpdateProp' : IDL.Func([PlayerProps], [], []),
   'saveProviderConfig' : IDL.Func([IngestionProviderConfig], [], []),
+  'testOpticOddsConnection' : IDL.Func([], [OpticOddsConnectionResult], []),
   'transform' : IDL.Func(
       [TransformationInput],
       [TransformationOutput],
       ['query'],
     ),
+  'updateSensitivitySettings' : IDL.Func([SensitivitySettings], [], []),
 });
 
 export const idlInitArgs = [];
@@ -173,9 +269,19 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const VerificationRollingWindow = IDL.Variant({
+    'last3Games' : IDL.Null,
+    'seasonAverage' : IDL.Null,
+  });
+  const SensitivitySettings = IDL.Record({
+    'marketAlertsEnabled' : IDL.Bool,
+    'edgeThresholdPercentage' : IDL.Nat,
+    'verificationRollingWindow' : VerificationRollingWindow,
+  });
   const UserProfile = IDL.Record({
     'notificationPreferences' : IDL.Bool,
     'name' : IDL.Text,
+    'sensitivitySettings' : SensitivitySettings,
     'favoriteTeams' : IDL.Vec(IDL.Text),
   });
   const Time = IDL.Int;
@@ -200,6 +306,11 @@ export const idlFactory = ({ IDL }) => {
     'edgeScore' : IDL.Text,
     'isValid' : IDL.Bool,
   });
+  const GameStatus = IDL.Variant({
+    'notStarted' : IDL.Null,
+    'completed' : IDL.Null,
+    'inProgress' : IDL.Null,
+  });
   const LineType = IDL.Variant({
     'prizePicks' : IDL.Null,
     'sportsBook' : IDL.Null,
@@ -216,6 +327,33 @@ export const idlFactory = ({ IDL }) => {
     'passingYards' : IDL.Null,
     'points' : IDL.Null,
     'passesCompleted' : IDL.Null,
+  });
+  const LivePick = IDL.Record({
+    'id' : IDL.Nat,
+    'source' : IDL.Text,
+    'line' : IDL.Float64,
+    'gameStatus' : GameStatus,
+    'team' : IDL.Text,
+    'lastUpdated' : Time,
+    'tournament' : IDL.Text,
+    'sport' : Sport,
+    'lineType' : LineType,
+    'propType' : PropType,
+    'awayMoneylineOdds' : IDL.Opt(IDL.Float64),
+    'playerName' : IDL.Text,
+    'homeMoneylineOdds' : IDL.Opt(IDL.Float64),
+    'lineString' : IDL.Text,
+    'statCategory' : StatCategory,
+  });
+  const LivePicksDiagnostics = IDL.Record({
+    'lastFailureMessage' : IDL.Text,
+    'totalFailures' : IDL.Nat,
+    'lastSuccess' : Time,
+    'totalAttempts' : IDL.Nat,
+    'lastFailure' : Time,
+    'totalSuccesses' : IDL.Nat,
+    'lastAttempt' : Time,
+    'numLivePicks' : IDL.Nat,
   });
   const PlayerProps = IDL.Record({
     'id' : IDL.Nat,
@@ -259,6 +397,42 @@ export const idlFactory = ({ IDL }) => {
     'opticOddsApiKey' : IDL.Text,
     'dailyFantasyApiKey' : IDL.Text,
   });
+  const SettlementStatus = IDL.Variant({
+    'active' : IDL.Null,
+    'settled' : IDL.Null,
+  });
+  const SettlementOutcome = IDL.Variant({
+    'won' : IDL.Null,
+    'lost' : IDL.Null,
+    'push' : IDL.Null,
+  });
+  const SettleablePrediction = IDL.Record({
+    'id' : IDL.Nat,
+    'source' : IDL.Text,
+    'betAmount' : IDL.Opt(IDL.Float64),
+    'line' : IDL.Float64,
+    'gameStatus' : GameStatus,
+    'odds' : IDL.Opt(IDL.Float64),
+    'team' : IDL.Text,
+    'lastUpdated' : Time,
+    'tournament' : IDL.Text,
+    'settlementStatus' : SettlementStatus,
+    'sport' : Sport,
+    'lineType' : LineType,
+    'propType' : PropType,
+    'playerName' : IDL.Text,
+    'resultValue' : IDL.Opt(IDL.Float64),
+    'outcome' : IDL.Opt(SettlementOutcome),
+    'lineString' : IDL.Text,
+    'statCategory' : StatCategory,
+  });
+  const OpticOddsConnectionResult = IDL.Record({
+    'healthy' : IDL.Bool,
+    'message' : IDL.Text,
+    'timestamp' : Time,
+    'statusCode' : IDL.Opt(IDL.Nat),
+    'responseBody' : IDL.Opt(IDL.Text),
+  });
   const http_header = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
   const http_request_result = IDL.Record({
     'status' : IDL.Nat,
@@ -278,6 +452,7 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'getActivePredictionsCount' : IDL.Func([], [IDL.Nat], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCoachRating' : IDL.Func([IDL.Nat], [IDL.Opt(CoachRatingD)], ['query']),
@@ -286,6 +461,9 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(EdgeCalculation)],
         ['query'],
       ),
+    'getLivePicks' : IDL.Func([], [IDL.Vec(LivePick)], ['query']),
+    'getLivePicksDiagnostics' : IDL.Func([], [LivePicksDiagnostics], ['query']),
+    'getLivePicksLastUpdated' : IDL.Func([], [Time], ['query']),
     'getNBAPlayerProps' : IDL.Func([], [IDL.Vec(PlayerProps)], ['query']),
     'getPlayerProp' : IDL.Func([IDL.Nat], [IDL.Opt(PlayerProps)], ['query']),
     'getPlayerPropsWithEdges' : IDL.Func(
@@ -299,10 +477,20 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(IngestionProviderConfig)],
         ['query'],
       ),
+    'getSettleablePrediction' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Opt(SettleablePrediction)],
+        ['query'],
+      ),
     'getSource' : IDL.Func([], [IDL.Text], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
+    'getUserSensitivitySettings' : IDL.Func(
+        [],
+        [IDL.Opt(SensitivitySettings)],
         ['query'],
       ),
     'getVerificationResult' : IDL.Func(
@@ -312,14 +500,18 @@ export const idlFactory = ({ IDL }) => {
       ),
     'importData' : IDL.Func([], [IDL.Text], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'refreshLivePicksInternal' : IDL.Func([], [], []),
+    'register' : IDL.Func([], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'saveOrUpdateProp' : IDL.Func([PlayerProps], [], []),
     'saveProviderConfig' : IDL.Func([IngestionProviderConfig], [], []),
+    'testOpticOddsConnection' : IDL.Func([], [OpticOddsConnectionResult], []),
     'transform' : IDL.Func(
         [TransformationInput],
         [TransformationOutput],
         ['query'],
       ),
+    'updateSensitivitySettings' : IDL.Func([SensitivitySettings], [], []),
   });
 };
 

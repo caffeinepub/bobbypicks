@@ -1,123 +1,105 @@
 {
   "kind": "build_request",
-  "title": "Add Landing Page, searchable Prop Board table with Value Bar, Parlay combined hit-rate, and per-pick Show Logic transparency",
+  "title": "Add a simple Live Picks page",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-18",
-      "text": "Add a new Landing Page route that becomes the default (\"/\") and presents a dark-themed, high-energy hero section with a \"Daily Top 3 Parlay\" module built from the current edge data.",
+      "id": "REQ-1",
+      "text": "Add a simple Live Picks page at route \"/live\" that requires Internet Identity login and displays live picks in a responsive card grid.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-5"
         ],
         "quotes": [
-          "Landing Page: A dark-themed high-energy hero section with a Daily Top 3 Parlay' feature"
+          "Can you add a simple live picks page"
         ]
       },
       "acceptanceCriteria": [
-        "Navigating to \"/\" renders a Landing Page (not the current Edge Board page).",
-        "Landing Page includes a hero section that visually matches a dark, high-energy style (high contrast, bold typography, dynamic layout) and uses English UI text.",
-        "Landing Page includes a \"Daily Top 3 Parlay\" section that selects three picks from the existing fetched edge opportunities (e.g., top 3 by absolute edge percentage) and renders them consistently.",
-        "Each of the three picks in \"Daily Top 3 Parlay\" provides a clear call-to-action to add that pick to the parlay (using existing parlay state).",
-        "If fewer than 3 edge opportunities exist, the module degrades gracefully (shows available picks and a clear empty-state message in English)."
+        "Navigating to \"/live\" renders a Live Picks page within the main AppLayout.",
+        "If the user is not authenticated, the page shows the existing login-required UI state.",
+        "Live picks render as a responsive grid of cards (1 column on small screens, increasing on larger breakpoints).",
+        "If there are no picks, the page shows a clear empty state message in English."
       ]
     },
     {
-      "id": "REQ-19",
-      "text": "Introduce a dedicated \"Prop Board\" screen that is a searchable table view of props/edges showing: player name, team, prop category (Points, Rebounds, etc.), and a \"Value Bar\" representing the AI-predicted hit percentage.",
+      "id": "REQ-2",
+      "text": "On the Live Picks page, include basic controls: a text search (player name/team) and a simple status filter (All/Live/Final/Upcoming) that work together to filter the visible picks.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-5"
         ],
         "quotes": [
-          "The Prop Board: A searchable able showing players, their team heir prop category (Points Rebounds, etc.), and a 'Value Bar showing the Al's predictec bercentage of hitting"
+          "Can you add a simple live picks page"
         ]
       },
       "acceptanceCriteria": [
-        "App navigation includes a \"Prop Board\" link that routes to the Prop Board screen.",
-        "Prop Board renders a table (not card grid) with columns at minimum: Player, Team, Category, Value Bar, and an action column (e.g., add/remove parlay, view details).",
-        "Prop Board includes a search input that filters rows by player name and team (case-insensitive).",
-        "\"Value Bar\" is displayed per row as a horizontal bar + percentage label in English; it uses an available probability metric from current data (use verification.confidenceScore * 100 when present; otherwise show a clear \"N/A\"/\"Not available\" state).",
-        "Table rows include a way to navigate to the existing Prop Detail page for that prop.",
-        "Loading and error states are handled using existing LoadingState/ErrorState patterns."
+        "Search input filters picks by player name or team (case-insensitive).",
+        "Status filter can switch between All, Live, Final, and Upcoming and updates the displayed cards accordingly.",
+        "When no picks match filters, show an in-grid empty results message in English."
       ]
     },
     {
-      "id": "REQ-20",
-      "text": "Update routing and top navigation so the Landing Page (\"/\") and Prop Board are both accessible, while keeping existing pages (Parlay Builder, Settings, About, Prop Detail) functional.",
-      "target": "frontend",
+      "id": "REQ-3",
+      "text": "Fetch Live Picks data from the backend with periodic polling and show standard loading/error states, plus a \"Last updated\" timestamp when available.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-5"
         ],
         "quotes": [
-          "User Features Screens:\nLanding Page... The Prop Board... Parlay Builder..."
+          "Can you add a simple live picks page"
         ]
       },
       "acceptanceCriteria": [
-        "The router is updated so \"/\" maps to the new Landing Page.",
-        "The existing Edge Board/prop discovery view remains accessible under a stable, clearly named route (e.g., \"/board\" or \"/props\") and is linked in the header navigation as \"Prop Board\" (English text).",
-        "Existing routes \"/parlay\", \"/settings\", \"/about\", and \"/prop/$propId\" continue to work.",
-        "Header nav active states still work correctly after route changes."
+        "While fetching, show a loading state with English text (e.g., \"Loading live picks...\").",
+        "If the query fails, show the existing error UI state.",
+        "Live picks refresh automatically on an interval (polling) without requiring manual page reload.",
+        "If a last-updated timestamp is available from the backend, display it on the page in human-friendly relative time (English)."
       ]
     },
     {
-      "id": "REQ-21",
-      "text": "Enhance the Parlay Builder to support bundling 2–6 picks and display the projected combined hit-rate for the selected parlay.",
-      "target": "frontend",
+      "id": "REQ-4",
+      "text": "Ensure the backend exposes the Live Picks read APIs needed by the Live Picks page: getLivePicks(), getLivePicksLastUpdated(), and getLivePicksDiagnostics().",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-5"
         ],
         "quotes": [
-          "Parlay Builder: A tool where users can click on 2-6 picks to 'Bundle' them into a parlay. It should show the proiected combined hit-rate."
+          "Can you add a simple live picks page"
         ]
       },
       "acceptanceCriteria": [
-        "The app prevents adding more than 6 legs to the parlay (e.g., disable add buttons and show an English explanation like \"Maximum 6 legs\").",
-        "The Parlay Builder page clearly indicates when fewer than 2 legs are selected (e.g., \"Select at least 2 picks to bundle\") and does not show a misleading combined hit-rate.",
-        "When 2–6 legs are selected, the Parlay Builder displays a \"Projected combined hit-rate\" percentage computed from available per-leg probabilities (use leg.confidenceScore when present; ignore or treat missing values explicitly).",
-        "The combined hit-rate calculation is deterministic and updates immediately when legs are added/removed.",
-        "All user-facing labels are in English."
-      ]
-    },
-    {
-      "id": "REQ-22",
-      "text": "Add a per-pick \"Show Logic\" transparency UI (dropdown/collapsible) wherever picks are shown (at minimum: Prop Board rows and Parlay Builder legs; optionally also on Prop Detail) that explains the stats behind each prediction using existing verification/projection/edge data.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-4"
-        ],
-        "quotes": [
-          "Transparency Box: Each pick nust have a 'Show Logic dropdown explaining the stats behind the prediction"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Each pick displayed in the Prop Board table includes a \"Show Logic\" control that expands/collapses additional details.",
-        "Each leg displayed on the Parlay Builder page includes a \"Show Logic\" control that expands/collapses additional details.",
-        "The expanded content is assembled from existing available fields and is understandable in English (e.g., includes confidence score %, verification summary text if present, edge %, PrizePicks line, and consensus/projection value when present).",
-        "If verification summary or projection is missing, the dropdown still opens and shows a clear \"Not available\" message rather than blank space or errors.",
-        "UI uses existing shadcn components (e.g., Collapsible/Accordion/Card) without modifying files under frontend/src/components/ui."
+        "Backend actor provides a method to return the current list of LivePick records.",
+        "Backend actor provides a method to return the last updated timestamp for live picks.",
+        "Backend actor provides a method to return diagnostics for live picks ingestion (including last success/failure timestamps and an error message).",
+        "Frontend can call these methods successfully when authenticated via Internet Identity."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; only add migration.mo if a stable state upgrade is required.",
-    "Do not edit files in frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, and anything under frontend/src/components/ui (compose them instead).",
-    "Use English for any user-facing text.",
-    "Do not route any static images through the backend."
+    "Frontend files in immutablePaths must not be edited (use composition/wrappers instead).",
+    "Backend must remain a single Motoko actor in backend/main.mo; only add backend/migration.mo if an upgrade/state migration is required."
   ],
   "nonGoals": [
-    "Implementing or changing the ingestion pipeline, external providers, or admin configuration flows.",
-    "Adding real-money betting, bet placement, or any automated wagering actions.",
-    "Introducing real-time updates via websockets/push notifications.",
-    "Adding new auth providers beyond Internet Identity."
+    "Do not implement real-money wagering, payments, or storing user pick selections on the backend.",
+    "Do not add third-party authentication providers (only Internet Identity).",
+    "Do not add real-time websockets; polling via React Query is sufficient."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

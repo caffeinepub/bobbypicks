@@ -18,19 +18,6 @@ export interface IngestionProviderConfig {
     opticOddsApiKey: string;
     dailyFantasyApiKey: string;
 }
-export interface EdgeCalculation {
-    edgePercentage: number;
-    calcTime: Time;
-    propId: bigint;
-    edgeScore: string;
-    isValid: boolean;
-}
-export interface PlayerPropsWithEdgesView {
-    projections: Array<Projection>;
-    verificationResults: Array<VerificationResult>;
-    prop: PlayerProps;
-    edges: Array<EdgeCalculation>;
-}
 export interface PlayerProps {
     id: bigint;
     source: string;
@@ -45,20 +32,10 @@ export interface PlayerProps {
     lineString: string;
     statCategory: StatCategory;
 }
-export interface http_header {
-    value: string;
-    name: string;
-}
-export interface http_request_result {
-    status: bigint;
-    body: Uint8Array;
-    headers: Array<http_header>;
-}
-export interface VerificationResult {
-    verificationTime: Time;
-    verificationSummary: string;
-    confidenceScore: number;
-    propId: bigint;
+export interface SensitivitySettings {
+    marketAlertsEnabled: boolean;
+    edgeThresholdPercentage: bigint;
+    verificationRollingWindow: VerificationRollingWindow;
 }
 export interface TransformationInput {
     context: Uint8Array;
@@ -71,9 +48,92 @@ export interface Projection {
     propId: bigint;
     isValid: boolean;
 }
+export interface LivePick {
+    id: bigint;
+    source: string;
+    line: number;
+    gameStatus: GameStatus;
+    team: string;
+    lastUpdated: Time;
+    tournament: string;
+    sport: Sport;
+    lineType: LineType;
+    propType: PropType;
+    awayMoneylineOdds?: number;
+    playerName: string;
+    homeMoneylineOdds?: number;
+    lineString: string;
+    statCategory: StatCategory;
+}
+export interface SettleablePrediction {
+    id: bigint;
+    source: string;
+    betAmount?: number;
+    line: number;
+    gameStatus: GameStatus;
+    odds?: number;
+    team: string;
+    lastUpdated: Time;
+    tournament: string;
+    settlementStatus: SettlementStatus;
+    sport: Sport;
+    lineType: LineType;
+    propType: PropType;
+    playerName: string;
+    resultValue?: number;
+    outcome?: SettlementOutcome;
+    lineString: string;
+    statCategory: StatCategory;
+}
+export interface PlayerPropsWithEdgesView {
+    projections: Array<Projection>;
+    verificationResults: Array<VerificationResult>;
+    prop: PlayerProps;
+    edges: Array<EdgeCalculation>;
+}
+export interface EdgeCalculation {
+    edgePercentage: number;
+    calcTime: Time;
+    propId: bigint;
+    edgeScore: string;
+    isValid: boolean;
+}
+export interface http_header {
+    value: string;
+    name: string;
+}
+export interface http_request_result {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<http_header>;
+}
+export interface OpticOddsConnectionResult {
+    healthy: boolean;
+    message: string;
+    timestamp: Time;
+    statusCode?: bigint;
+    responseBody?: string;
+}
+export interface VerificationResult {
+    verificationTime: Time;
+    verificationSummary: string;
+    confidenceScore: number;
+    propId: bigint;
+}
+export interface LivePicksDiagnostics {
+    lastFailureMessage: string;
+    totalFailures: bigint;
+    lastSuccess: Time;
+    totalAttempts: bigint;
+    lastFailure: Time;
+    totalSuccesses: bigint;
+    lastAttempt: Time;
+    numLivePicks: bigint;
+}
 export interface UserProfile {
     notificationPreferences: boolean;
     name: string;
+    sensitivitySettings: SensitivitySettings;
     favoriteTeams: Array<string>;
 }
 export interface CoachRatingD {
@@ -84,6 +144,11 @@ export interface CoachRatingD {
     coachID: bigint;
     defensiveRating: number;
     lineupAdjustments: string;
+}
+export enum GameStatus {
+    notStarted = "notStarted",
+    completed = "completed",
+    inProgress = "inProgress"
 }
 export enum LineType {
     prizePicks = "prizePicks",
@@ -98,6 +163,15 @@ export enum PropType {
     playerPassingYards = "playerPassingYards",
     playerAssists = "playerAssists",
     playerPoints = "playerPoints"
+}
+export enum SettlementOutcome {
+    won = "won",
+    lost = "lost",
+    push = "push"
+}
+export enum SettlementStatus {
+    active = "active",
+    settled = "settled"
 }
 export enum Sport {
     mlb = "mlb",
@@ -116,24 +190,38 @@ export enum UserRole {
     user = "user",
     guest = "guest"
 }
+export enum VerificationRollingWindow {
+    last3Games = "last3Games",
+    seasonAverage = "seasonAverage"
+}
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    getActivePredictionsCount(): Promise<bigint>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCoachRating(coachId: bigint): Promise<CoachRatingD | null>;
     getEdgesSorted(invalidIncluded: boolean): Promise<Array<EdgeCalculation>>;
+    getLivePicks(): Promise<Array<LivePick>>;
+    getLivePicksDiagnostics(): Promise<LivePicksDiagnostics>;
+    getLivePicksLastUpdated(): Promise<Time>;
     getNBAPlayerProps(): Promise<Array<PlayerProps>>;
     getPlayerProp(propId: bigint): Promise<PlayerProps | null>;
     getPlayerPropsWithEdges(propId: bigint): Promise<PlayerPropsWithEdgesView | null>;
     getProjection(propId: bigint): Promise<Projection | null>;
     getProviderConfig(): Promise<IngestionProviderConfig | null>;
+    getSettleablePrediction(predictionId: bigint): Promise<SettleablePrediction | null>;
     getSource(): Promise<string>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getUserSensitivitySettings(): Promise<SensitivitySettings | null>;
     getVerificationResult(propId: bigint): Promise<VerificationResult | null>;
     importData(): Promise<string>;
     isCallerAdmin(): Promise<boolean>;
+    refreshLivePicksInternal(): Promise<void>;
+    register(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveOrUpdateProp(prop: PlayerProps): Promise<void>;
     saveProviderConfig(config: IngestionProviderConfig): Promise<void>;
+    testOpticOddsConnection(): Promise<OpticOddsConnectionResult>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
+    updateSensitivitySettings(newSettings: SensitivitySettings): Promise<void>;
 }

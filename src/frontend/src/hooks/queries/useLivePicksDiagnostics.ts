@@ -1,18 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { useActor } from '../useActor';
 import { useInternetIdentity } from '../useInternetIdentity';
-import type { PlayerPropsWithEdgesView } from '../../backend';
+import type { LivePicksDiagnostics } from '../../backend';
 
-export function usePropDetail(propId: string) {
+export function useLivePicksDiagnostics() {
   const { actor, isFetching: actorFetching } = useActor();
   const { identity } = useInternetIdentity();
 
-  return useQuery<PlayerPropsWithEdgesView | null>({
-    queryKey: ['propDetail', propId],
+  return useQuery<LivePicksDiagnostics>({
+    queryKey: ['livePicksDiagnostics'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getPlayerPropsWithEdges(BigInt(propId));
+      return actor.getLivePicksDiagnostics();
     },
-    enabled: !!actor && !actorFetching && !!propId && !!identity,
+    enabled: !!actor && !actorFetching && !!identity,
+    retry: false,
   });
 }

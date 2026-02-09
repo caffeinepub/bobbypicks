@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useActor } from '../useActor';
+import { useInternetIdentity } from '../useInternetIdentity';
 import type { EdgeCalculation, PlayerProps, Projection, VerificationResult } from '../../backend';
 
 export interface EdgeWithDetails {
@@ -11,6 +12,7 @@ export interface EdgeWithDetails {
 
 export function useEdges() {
   const { actor, isFetching: actorFetching } = useActor();
+  const { identity } = useInternetIdentity();
 
   return useQuery<EdgeWithDetails[]>({
     queryKey: ['edges'],
@@ -44,6 +46,6 @@ export function useEdges() {
 
       return edgesWithDetails;
     },
-    enabled: !!actor && !actorFetching,
+    enabled: !!actor && !actorFetching && !!identity,
   });
 }

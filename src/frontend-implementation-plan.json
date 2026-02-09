@@ -1,165 +1,85 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Landing + Prop Board table with Value Bar, parlay combined hit-rate, and Show Logic transparency",
+  "title": "Add /live Live Picks page with auth, filtering, and polling",
   "requirements": [
     {
-      "id": "REQ-18",
-      "summary": "Add a new Landing Page at \"/\" with dark hero styling and a Daily Top 3 Parlay module sourced from current edge data.",
+      "id": "REQ-1",
+      "summary": "Ensure /live renders a Live Picks page inside AppLayout and requires Internet Identity login with a responsive card grid and clear empty state.",
       "acceptanceCriteria": [
-        "Navigating to \"/\" renders a Landing Page (not the current Edge Board page).",
-        "Landing Page includes a hero section that visually matches a dark, high-energy style (high contrast, bold typography, dynamic layout) and uses English UI text.",
-        "Landing Page includes a \"Daily Top 3 Parlay\" section that selects three picks from the existing fetched edge opportunities (e.g., top 3 by absolute edge percentage) and renders them consistently.",
-        "Each of the three picks in \"Daily Top 3 Parlay\" provides a clear call-to-action to add that pick to the parlay (using existing parlay state).",
-        "If fewer than 3 edge opportunities exist, the module degrades gracefully (shows available picks and a clear empty-state message in English)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/LandingPage.tsx",
-          "operation": "create",
-          "description": "Create the Landing Page UI (dark, high-energy hero) and a \"Daily Top 3 Parlay\" module that uses existing edge data (via the existing edges query) to pick the top 3 by absolute edge percentage, renders them, and provides add-to-parlay CTAs. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/landing/DailyTopParlay.tsx",
-          "operation": "create",
-          "description": "Add a reusable \"Daily Top 3 Parlay\" component that consumes EdgeWithDetails items, handles <3 items with an English empty-state, and renders consistent pick rows including the existing AddToParlayButton. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/routeTree.tsx",
-          "operation": "modify",
-          "description": "Wire the new Landing Page so the index route (\"/\") renders LandingPage."
-        }
-      ]
-    },
-    {
-      "id": "REQ-19",
-      "summary": "Add a Prop Board screen: searchable table of props/edges including Value Bar and links/actions per row.",
-      "acceptanceCriteria": [
-        "App navigation includes a \"Prop Board\" link that routes to the Prop Board screen.",
-        "Prop Board renders a table (not card grid) with columns at minimum: Player, Team, Category, Value Bar, and an action column (e.g., add/remove parlay, view details).",
-        "Prop Board includes a search input that filters rows by player name and team (case-insensitive).",
-        "\"Value Bar\" is displayed per row as a horizontal bar + percentage label in English; it uses an available probability metric from current data (use verification.confidenceScore * 100 when present; otherwise show a clear \"N/A\"/\"Not available\" state).",
-        "Table rows include a way to navigate to the existing Prop Detail page for that prop.",
-        "Loading and error states are handled using existing LoadingState/ErrorState patterns."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/PropBoardPage.tsx",
-          "operation": "create",
-          "description": "Create the Prop Board page that uses existing edges data, displays LoadingState/ErrorState, renders a searchable (case-insensitive) table with columns Player/Team/Category/Value Bar/Actions, and includes row actions (AddToParlayButton + link to Prop Detail). Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/props/ValueBar.tsx",
-          "operation": "create",
-          "description": "Create a Value Bar component that renders a horizontal bar with an English percent label using verification.confidenceScore * 100 when present, otherwise a clear \"Not available\" state. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/props/PropBoardRowActions.tsx",
-          "operation": "create",
-          "description": "Add a small composition component for the Prop Board action column to keep the table row lean (add/remove parlay + navigate to prop detail + Show Logic control integration). Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/routeTree.tsx",
-          "operation": "modify",
-          "description": "Add a dedicated \"/props\" route that renders PropBoardPage."
-        },
-        {
-          "path": "frontend/src/components/layout/AppLayout.tsx",
-          "operation": "modify",
-          "description": "Add a header navigation link labeled \"Prop Board\" that routes to the new Prop Board screen (\"/props\") and preserves existing active state behavior. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-20",
-      "summary": "Update routing and navigation so Landing (\"/\") and Prop Board are accessible, while keeping existing pages functional.",
-      "acceptanceCriteria": [
-        "The router is updated so \"/\" maps to the new Landing Page.",
-        "The existing Edge Board/prop discovery view remains accessible under a stable, clearly named route (e.g., \"/board\" or \"/props\") and is linked in the header navigation as \"Prop Board\" (English text).",
-        "Existing routes \"/parlay\", \"/settings\", \"/about\", and \"/prop/$propId\" continue to work.",
-        "Header nav active states still work correctly after route changes."
+        "Navigating to \"/live\" renders a Live Picks page within the main AppLayout.",
+        "If the user is not authenticated, the page shows the existing login-required UI state.",
+        "Live picks render as a responsive grid of cards (1 column on small screens, increasing on larger breakpoints).",
+        "If there are no picks, the page shows a clear empty state message in English."
       ],
       "file_operations": [
         {
           "path": "frontend/src/routeTree.tsx",
           "operation": "modify",
-          "description": "Update routes so: \"/\" renders the new LandingPage; keep existing Prop Detail, Parlay Builder, Settings, and About routes unchanged; keep the existing EdgeBoardPage available under a stable non-index route (e.g., \"/board\")."
+          "description": "Confirm the \"/live\" route is registered and wrapped with the existing auth gate (RequireAuth) so unauthenticated users see the existing LoginRequiredState. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/layout/AppLayout.tsx",
+          "path": "frontend/src/pages/LivePicksPage.tsx",
           "operation": "modify",
-          "description": "Update header navigation so both Landing (via logo/home) and Prop Board are accessible, while retaining Parlay Builder/Settings/About links and ensuring active styles still apply correctly after route changes. Verify the component's usage instructions before implementing."
+          "description": "Ensure the Live Picks page content is rendered within the existing AppLayout flow and that the unauthenticated state relies on the existing login-required UI state (via RequireAuth/LoginRequiredState). Keep/confirm an English empty state when no picks are available. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/ParlayBuilderPage.tsx",
+          "path": "frontend/src/components/live/LivePicksGrid.tsx",
           "operation": "modify",
-          "description": "Update any in-page links that previously assumed the discovery view lived at \"/\" (e.g., empty-state CTA) so they route to the appropriate board screen after \"/\" becomes the Landing Page. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/PropDetailPage.tsx",
-          "operation": "modify",
-          "description": "Update any back/browse links that previously routed to \"/\" so they route to the appropriate board screen after \"/\" becomes the Landing Page (while keeping \"/prop/$propId\" fully functional). Verify the component's usage instructions before implementing."
+          "description": "Confirm/adjust responsive grid breakpoints for card layout (1 col small, increasing on larger screens) and ensure an English empty state is shown when there are no picks to render. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
-      "id": "REQ-21",
-      "summary": "Enforce 2–6 parlay leg bundling and display deterministic projected combined hit-rate.",
+      "id": "REQ-2",
+      "summary": "Add search and status filter controls on Live Picks that jointly filter the visible cards and show an empty results message.",
       "acceptanceCriteria": [
-        "The app prevents adding more than 6 legs to the parlay (e.g., disable add buttons and show an English explanation like \"Maximum 6 legs\").",
-        "The Parlay Builder page clearly indicates when fewer than 2 legs are selected (e.g., \"Select at least 2 picks to bundle\") and does not show a misleading combined hit-rate.",
-        "When 2–6 legs are selected, the Parlay Builder displays a \"Projected combined hit-rate\" percentage computed from available per-leg probabilities (use leg.confidenceScore when present; ignore or treat missing values explicitly).",
-        "The combined hit-rate calculation is deterministic and updates immediately when legs are added/removed.",
-        "All user-facing labels are in English."
+        "Search input filters picks by player name or team (case-insensitive).",
+        "Status filter can switch between All, Live, Final, and Upcoming and updates the displayed cards accordingly.",
+        "When no picks match filters, show an in-grid empty results message in English."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/state/parlay/ParlayProvider.tsx",
+          "path": "frontend/src/pages/LivePicksPage.tsx",
           "operation": "modify",
-          "description": "Add parlay constraints to state management: prevent adding a new leg when already at 6 legs (while still allowing removal/clearing), and expose any needed state to inform UI disabling/messaging. Verify the component's usage instructions before implementing."
+          "description": "Wire search (player/team, case-insensitive) and status filtering to work together when computing the displayed picks list; ensure the UI clearly reflects filters and the filtered list drives the grid. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/parlay/AddToParlayButton.tsx",
+          "path": "frontend/src/components/live/LivePicksStatusFilter.tsx",
           "operation": "modify",
-          "description": "Disable the \"Add to Parlay\" action when the parlay already has 6 legs and this prop is not already included; show an English explanation such as \"Maximum 6 legs\" (e.g., helper text/tooltip area). Ensure toggling off still works when at max. Verify the component's usage instructions before implementing."
+          "description": "Confirm the filter options and labels map to the backend GameStatus values and include All/Live/Final/Upcoming. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/lib/parlay/combinedHitRate.ts",
-          "operation": "create",
-          "description": "Implement a deterministic combined hit-rate utility that computes projected combined hit-rate for 2–6 legs from per-leg confidenceScore values (e.g., multiply probabilities). Explicitly handle missing confidenceScore values by returning a structured \"not available\" result. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/ParlayBuilderPage.tsx",
+          "path": "frontend/src/components/live/LivePicksGrid.tsx",
           "operation": "modify",
-          "description": "Display \"Projected combined hit-rate\" only when 2–6 legs are selected and the required per-leg probabilities are available; otherwise show clear English guidance (e.g., \"Select at least 2 picks to bundle\" or \"Not available (missing confidence for X legs)\"). Ensure the value updates immediately when legs change. Verify the component's usage instructions before implementing."
+          "description": "Update the empty-results rendering to be an in-grid message (English) when the filtered list is empty (distinct from the overall 'no picks available' page-level empty state). Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
-      "id": "REQ-22",
-      "summary": "Add per-pick Show Logic transparency UI for picks (Prop Board rows and Parlay Builder legs).",
+      "id": "REQ-3",
+      "summary": "Fetch live picks with periodic polling and show standard loading/error states plus a human-friendly Last updated timestamp when available.",
       "acceptanceCriteria": [
-        "Each pick displayed in the Prop Board table includes a \"Show Logic\" control that expands/collapses additional details.",
-        "Each leg displayed on the Parlay Builder page includes a \"Show Logic\" control that expands/collapses additional details.",
-        "The expanded content is assembled from existing available fields and is understandable in English (e.g., includes confidence score %, verification summary text if present, edge %, PrizePicks line, and consensus/projection value when present).",
-        "If verification summary or projection is missing, the dropdown still opens and shows a clear \"Not available\" message rather than blank space or errors.",
-        "UI uses existing shadcn components (e.g., Collapsible/Accordion/Card) without modifying files under frontend/src/components/ui."
+        "While fetching, show a loading state with English text (e.g., \"Loading live picks...\").",
+        "If the query fails, show the existing error UI state.",
+        "Live picks refresh automatically on an interval (polling) without requiring manual page reload.",
+        "If a last-updated timestamp is available from the backend, display it on the page in human-friendly relative time (English)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/props/ShowLogic.tsx",
-          "operation": "create",
-          "description": "Create a reusable \"Show Logic\" collapsible component that uses existing composed shadcn building blocks (e.g., Card/Button patterns) to expand/collapse an English explanation assembled from existing fields (confidence %, verification summary, edge %, PrizePicks line, consensus/projection). Must handle missing fields with explicit \"Not available\" messages. Do not modify anything under frontend/src/components/ui. Verify the component's usage instructions before implementing."
+          "path": "frontend/src/hooks/queries/useLivePicks.ts",
+          "operation": "modify",
+          "description": "Ensure live picks data is fetched via React Query with polling enabled while actor+identity are available, and that failures propagate to the page for standard error UI. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/PropBoardPage.tsx",
+          "path": "frontend/src/hooks/queries/useLivePicksLastUpdated.ts",
           "operation": "modify",
-          "description": "Integrate the Show Logic control into each Prop Board table row (at minimum in the action column or an expandable secondary row) so it expands/collapses without breaking table layout; ensure it renders meaningful English content and missing-field messaging. Verify the component's usage instructions before implementing."
+          "description": "Ensure the last-updated timestamp is fetched via React Query with polling enabled while actor+identity are available, and that failures propagate to the page for standard error UI. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/ParlayBuilderPage.tsx",
+          "path": "frontend/src/pages/LivePicksPage.tsx",
           "operation": "modify",
-          "description": "Add a Show Logic control for each parlay leg that expands/collapses details based on the leg's stored fields and verification data; ensure missing summary/projection information still renders a clear English \"Not available\" message. Verify the component's usage instructions before implementing."
+          "description": "Show the standard loading UI while queries are in-flight; if any of the Live Picks fetches fail (picks/timestamp/diagnostics), render the existing ErrorState; and display a human-friendly relative \"Last updated\" when a non-zero timestamp is available. Verify the component's usage instructions before implementing."
         }
       ]
     }

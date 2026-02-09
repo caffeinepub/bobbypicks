@@ -26,6 +26,9 @@ export interface EdgeCalculation {
   'edgeScore' : string,
   'isValid' : boolean,
 }
+export type GameStatus = { 'notStarted' : null } |
+  { 'completed' : null } |
+  { 'inProgress' : null };
 export interface IngestionProviderConfig {
   'oddsApiKey' : string,
   'opticOddsApiKey' : string,
@@ -33,6 +36,40 @@ export interface IngestionProviderConfig {
 }
 export type LineType = { 'prizePicks' : null } |
   { 'sportsBook' : null };
+export interface LivePick {
+  'id' : bigint,
+  'source' : string,
+  'line' : number,
+  'gameStatus' : GameStatus,
+  'team' : string,
+  'lastUpdated' : Time,
+  'tournament' : string,
+  'sport' : Sport,
+  'lineType' : LineType,
+  'propType' : PropType,
+  'awayMoneylineOdds' : [] | [number],
+  'playerName' : string,
+  'homeMoneylineOdds' : [] | [number],
+  'lineString' : string,
+  'statCategory' : StatCategory,
+}
+export interface LivePicksDiagnostics {
+  'lastFailureMessage' : string,
+  'totalFailures' : bigint,
+  'lastSuccess' : Time,
+  'totalAttempts' : bigint,
+  'lastFailure' : Time,
+  'totalSuccesses' : bigint,
+  'lastAttempt' : Time,
+  'numLivePicks' : bigint,
+}
+export interface OpticOddsConnectionResult {
+  'healthy' : boolean,
+  'message' : string,
+  'timestamp' : Time,
+  'statusCode' : [] | [bigint],
+  'responseBody' : [] | [string],
+}
 export interface PlayerProps {
   'id' : bigint,
   'source' : string,
@@ -66,6 +103,36 @@ export type PropType = { 'playerRebounds' : null } |
   { 'playerPassingYards' : null } |
   { 'playerAssists' : null } |
   { 'playerPoints' : null };
+export interface SensitivitySettings {
+  'marketAlertsEnabled' : boolean,
+  'edgeThresholdPercentage' : bigint,
+  'verificationRollingWindow' : VerificationRollingWindow,
+}
+export interface SettleablePrediction {
+  'id' : bigint,
+  'source' : string,
+  'betAmount' : [] | [number],
+  'line' : number,
+  'gameStatus' : GameStatus,
+  'odds' : [] | [number],
+  'team' : string,
+  'lastUpdated' : Time,
+  'tournament' : string,
+  'settlementStatus' : SettlementStatus,
+  'sport' : Sport,
+  'lineType' : LineType,
+  'propType' : PropType,
+  'playerName' : string,
+  'resultValue' : [] | [number],
+  'outcome' : [] | [SettlementOutcome],
+  'lineString' : string,
+  'statCategory' : StatCategory,
+}
+export type SettlementOutcome = { 'won' : null } |
+  { 'lost' : null } |
+  { 'push' : null };
+export type SettlementStatus = { 'active' : null } |
+  { 'settled' : null };
 export type Sport = { 'mlb' : null } |
   { 'nba' : null } |
   { 'nfl' : null };
@@ -87,6 +154,7 @@ export interface TransformationOutput {
 export interface UserProfile {
   'notificationPreferences' : boolean,
   'name' : string,
+  'sensitivitySettings' : SensitivitySettings,
   'favoriteTeams' : Array<string>,
 }
 export type UserRole = { 'admin' : null } |
@@ -98,6 +166,8 @@ export interface VerificationResult {
   'confidenceScore' : number,
   'propId' : bigint,
 }
+export type VerificationRollingWindow = { 'last3Games' : null } |
+  { 'seasonAverage' : null };
 export interface http_header { 'value' : string, 'name' : string }
 export interface http_request_result {
   'status' : bigint,
@@ -107,10 +177,14 @@ export interface http_request_result {
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'getActivePredictionsCount' : ActorMethod<[], bigint>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCoachRating' : ActorMethod<[bigint], [] | [CoachRatingD]>,
   'getEdgesSorted' : ActorMethod<[boolean], Array<EdgeCalculation>>,
+  'getLivePicks' : ActorMethod<[], Array<LivePick>>,
+  'getLivePicksDiagnostics' : ActorMethod<[], LivePicksDiagnostics>,
+  'getLivePicksLastUpdated' : ActorMethod<[], Time>,
   'getNBAPlayerProps' : ActorMethod<[], Array<PlayerProps>>,
   'getPlayerProp' : ActorMethod<[bigint], [] | [PlayerProps]>,
   'getPlayerPropsWithEdges' : ActorMethod<
@@ -119,15 +193,24 @@ export interface _SERVICE {
   >,
   'getProjection' : ActorMethod<[bigint], [] | [Projection]>,
   'getProviderConfig' : ActorMethod<[], [] | [IngestionProviderConfig]>,
+  'getSettleablePrediction' : ActorMethod<
+    [bigint],
+    [] | [SettleablePrediction]
+  >,
   'getSource' : ActorMethod<[], string>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getUserSensitivitySettings' : ActorMethod<[], [] | [SensitivitySettings]>,
   'getVerificationResult' : ActorMethod<[bigint], [] | [VerificationResult]>,
   'importData' : ActorMethod<[], string>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'refreshLivePicksInternal' : ActorMethod<[], undefined>,
+  'register' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'saveOrUpdateProp' : ActorMethod<[PlayerProps], undefined>,
   'saveProviderConfig' : ActorMethod<[IngestionProviderConfig], undefined>,
+  'testOpticOddsConnection' : ActorMethod<[], OpticOddsConnectionResult>,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
+  'updateSensitivitySettings' : ActorMethod<[SensitivitySettings], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { Heart, TrendingUp, Layers, Settings, Info, Home } from 'lucide-react';
+import { Heart, TrendingUp, Layers, Settings, Info, Home, User, Radio } from 'lucide-react';
 import { LoginButton } from '../auth/LoginButton';
 import { useParlay } from '../../state/parlay/ParlayProvider';
 
@@ -43,6 +43,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </div>
               </Link>
               <Link
+                to="/live"
+                className="text-sm font-medium transition-colors hover:text-accent-foreground [&.active]:text-accent"
+              >
+                <div className="flex items-center gap-2">
+                  <Radio className="h-4 w-4" />
+                  Live Picks
+                </div>
+              </Link>
+              <Link
                 to="/parlay"
                 className="text-sm font-medium transition-colors hover:text-accent-foreground [&.active]:text-accent relative"
               >
@@ -54,6 +63,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                       {legs.length}
                     </span>
                   )}
+                </div>
+              </Link>
+              <Link
+                to="/profile"
+                className="text-sm font-medium transition-colors hover:text-accent-foreground [&.active]:text-accent"
+              >
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Profile
                 </div>
               </Link>
               <Link

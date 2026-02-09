@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { useEdges } from '../hooks/queries/useEdges';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import { useSensitivitySettings } from '../hooks/queries/useSensitivitySettings';
+import { LoginRequiredState } from '../components/auth/LoginRequiredState';
 import { LoadingState } from '../components/loading/LoadingState';
 import { ErrorState } from '../components/error/ErrorState';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Search, Filter } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 import {
   Table,
   TableBody,
@@ -12,16 +18,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { ValueBar } from '../components/props/ValueBar';
 import { PropBoardRowActions } from '../components/props/PropBoardRowActions';
 import { ConfidenceBadge } from '../components/props/ConfidenceBadge';
 import { isHighConfidence } from '../lib/verification/highConfidence';
 import { ShowLogic } from '../components/props/ShowLogic';
+import { applyEdgeThreshold } from '../lib/edges/applyEdgeThreshold';
 
 export default function PropBoardPage() {
+  const { identity } = useInternetIdentity();
   const { data: edges, isLoading, error } = useEdges();
+  const { data: settings } = useSensitivitySettings();
   const [searchQuery, setSearchQuery] = useState('');
+
+  if (!identity) {
+    return <LoginRequiredState />;
+  }
 
   if (isLoading) {
     return <LoadingState message="Loading prop board..." />;
@@ -45,8 +57,12 @@ export default function PropBoardPage() {
     );
   }
 
-  // Filter edges by search query (case-insensitive)
-  const filteredEdges = edges.filter((edge) => {
+  // Apply edge threshold filtering
+  const threshold = settings ? Number(settings.edgeThresholdPercentage) : 1;
+  const thresholdFilteredEdges = applyEdgeThreshold(edges, threshold);
+
+  // Filter by search query (case-insensitive)
+  const filteredEdges = thresholdFilteredEdges.filter((edge) => {
     const query = searchQuery.toLowerCase();
     return (
       edge.prop.playerName.toLowerCase().includes(query) ||
@@ -54,13 +70,41 @@ export default function PropBoardPage() {
     );
   });
 
+  // Show empty state if threshold filtering removed all edges
+  if (thresholdFilteredEdges.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+        <div className="rounded-full bg-muted p-6">
+          <Filter className="h-12 w-12 text-muted-foreground" />
+        </div>
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold">No Picks Meet Your Threshold</h2>
+          <p className="text-muted-foreground max-w-md">
+            Your current edge threshold is set to {threshold}%. No picks currently meet this
+            criteria. Try lowering your threshold in Settings to see more opportunities.
+          </p>
+        </div>
+        <Link to="/settings">
+          <Button>Adjust Settings</Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Prop Board</h1>
-        <p className="text-muted-foreground mt-1">
-          Searchable table of all edge opportunities with value bars and transparency
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Prop Board</h1>
+          <p className="text-muted-foreground mt-1">
+            Searchable table of all edge opportunities with value bars and transparency
+          </p>
+        </div>
+        {threshold > 1 && (
+          <Badge variant="outline" className="text-sm">
+            Min Edge: {threshold}%
+          </Badge>
+        )}
       </div>
 
       <div className="relative">
@@ -143,7 +187,8 @@ export default function PropBoardPage() {
 
       {filteredEdges.length > 0 && (
         <p className="text-sm text-muted-foreground text-center">
-          Showing {filteredEdges.length} of {edges.length} props
+          Showing {filteredEdges.length} of {thresholdFilteredEdges.length} props
+          {threshold > 1 && ` (filtered by ${threshold}% minimum edge)`}
         </p>
       )}
     </div>

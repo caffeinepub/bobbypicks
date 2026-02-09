@@ -1,115 +1,184 @@
-import { useEdges } from '../hooks/queries/useEdges';
-import { LoadingState } from '../components/loading/LoadingState';
-import { ErrorState } from '../components/error/ErrorState';
-import { DailyTopParlay } from '../components/landing/DailyTopParlay';
-import { Button } from '@/components/ui/button';
 import { Link } from '@tanstack/react-router';
-import { TrendingUp, Target, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TrendingUp, Target, Layers, Shield, Zap, BarChart3 } from 'lucide-react';
+import { useEdges } from '../hooks/queries/useEdges';
+import { DailyTopParlay } from '../components/landing/DailyTopParlay';
+import { SettlementMetricsModule } from '../components/landing/SettlementMetricsModule';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
 
 export default function LandingPage() {
-  const { data: edges, isLoading, error } = useEdges();
+  const { identity } = useInternetIdentity();
+  const { data: edges } = useEdges();
 
-  if (isLoading) {
-    return <LoadingState message="Loading today's opportunities..." />;
-  }
-
-  if (error) {
-    return <ErrorState error={error} />;
-  }
-
-  // Get top 3 edges by absolute edge percentage
-  const topEdges = edges
-    ? [...edges]
-        .sort((a, b) => Math.abs(b.edge.edgePercentage) - Math.abs(a.edge.edgePercentage))
-        .slice(0, 3)
-    : [];
+  // Only show top 3 edges if authenticated and data is available
+  const topEdges = identity && edges ? edges.slice(0, 3) : [];
 
   return (
     <div className="space-y-16">
       {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-background via-background to-accent/10 border border-accent/20">
-        <div className="absolute inset-0 bg-[url('/assets/generated/bobbypicks-bg-texture.dim_1024x1024.png')] opacity-5" />
-        <div className="relative px-8 py-16 md:py-24">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/20 border border-accent/30 text-accent-foreground text-sm font-medium mb-4">
-              <Zap className="h-4 w-4" />
-              AI-Powered Edge Detection
-            </div>
-            <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-none">
-              Find the{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-accent/60">
-                Edge
-              </span>
-              <br />
-              Before Everyone Else
-            </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Advanced analytics reveal line discrepancies between PrizePicks and sharp sportsbooks.
-              Build smarter parlays with confidence.
-            </p>
-            <div className="flex items-center justify-center gap-4 pt-4">
-              <Link to="/props">
-                <Button size="lg" className="text-lg px-8 py-6 h-auto">
-                  <TrendingUp className="mr-2 h-5 w-5" />
-                  Explore Prop Board
-                </Button>
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-background via-accent/5 to-background border border-accent/20 p-12 md:p-16">
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage: 'url(/assets/generated/bobbypicks-bg-texture.dim_1024x1024.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
+        <div className="relative z-10 max-w-3xl">
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6">
+            Find Your Edge in{' '}
+            <span className="text-accent">Player Props</span>
+          </h1>
+          <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+            BobbyPicks analyzes PrizePicks lines against real-time sportsbook odds to surface
+            high-confidence opportunities. Built for sharp bettors who want data-driven insights.
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <Button asChild size="lg" className="text-lg px-8">
+              <Link to="/edges">
+                <TrendingUp className="mr-2 h-5 w-5" />
+                View Edge Board
               </Link>
-              <Link to="/about">
-                <Button size="lg" variant="outline" className="text-lg px-8 py-6 h-auto">
-                  <Target className="mr-2 h-5 w-5" />
-                  How It Works
-                </Button>
-              </Link>
-            </div>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="text-lg px-8">
+              <Link to="/about">Learn More</Link>
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* Daily Top 3 Parlay */}
-      <section className="space-y-6">
-        <div className="text-center space-y-2">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Daily Top 3 Parlay
+      {/* Performance Tracker - Public Metrics */}
+      <section>
+        <SettlementMetricsModule />
+      </section>
+
+      {/* Daily Top 3 Parlay - Only shown when authenticated */}
+      {identity && topEdges.length > 0 && (
+        <section>
+          <DailyTopParlay edges={topEdges} />
+        </section>
+      )}
+
+      {/* Features Grid */}
+      <section className="space-y-8">
+        <div className="text-center max-w-2xl mx-auto">
+          <h2 className="text-3xl font-bold tracking-tight mb-3">
+            Why BobbyPicks?
           </h2>
-          <p className="text-muted-foreground text-lg">
-            Today's highest-edge opportunities, ready to bundle
+          <p className="text-muted-foreground">
+            Powerful tools and transparent methodology to help you make smarter prop bets
           </p>
         </div>
-        <DailyTopParlay edges={topEdges} />
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-accent/10">
+                  <Target className="h-6 w-6 text-accent" />
+                </div>
+                <CardTitle>Edge Detection</CardTitle>
+              </div>
+              <CardDescription>
+                Compare PrizePicks lines to sportsbook odds in real-time. Identify mispriced props
+                where the market disagrees with the DFS line.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-accent/10">
+                  <BarChart3 className="h-6 w-6 text-accent" />
+                </div>
+                <CardTitle>Verification Analysis</CardTitle>
+              </div>
+              <CardDescription>
+                Every pick includes a confidence score based on recent performance data. Filter by
+                your preferred rolling window (Last 3 Games or Season Average).
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-accent/10">
+                  <Layers className="h-6 w-6 text-accent" />
+                </div>
+                <CardTitle>Parlay Builder</CardTitle>
+              </div>
+              <CardDescription>
+                Stack 2-6 legs with projected combined hit-rate calculations. Export your parlay
+                summary to clipboard for easy entry on PrizePicks.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-accent/10">
+                  <Shield className="h-6 w-6 text-accent" />
+                </div>
+                <CardTitle>Transparent Logic</CardTitle>
+              </div>
+              <CardDescription>
+                See exactly how each edge is calculated. No black boxes—every confidence score
+                shows the underlying data and methodology.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-accent/10">
+                  <Zap className="h-6 w-6 text-accent" />
+                </div>
+                <CardTitle>Live Picks</CardTitle>
+              </div>
+              <CardDescription>
+                Track in-game player props as they update in real-time. Monitor live opportunities
+                and adjust your strategy on the fly.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-accent/10">
+                  <TrendingUp className="h-6 w-6 text-accent" />
+                </div>
+                <CardTitle>Sensitivity Controls</CardTitle>
+              </div>
+              <CardDescription>
+                Customize your edge threshold (1-10%) and verification window. Tailor the platform
+                to match your risk tolerance and betting style.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
       </section>
 
-      {/* Feature Highlights */}
-      <section className="grid md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-xl border border-border bg-card/50 backdrop-blur space-y-3">
-          <div className="h-12 w-12 rounded-lg bg-accent/20 flex items-center justify-center">
-            <TrendingUp className="h-6 w-6 text-accent" />
-          </div>
-          <h3 className="text-xl font-bold">Edge Detection</h3>
-          <p className="text-muted-foreground">
-            Automatically identify props where PrizePicks lines differ significantly from sharp
-            consensus.
-          </p>
-        </div>
-        <div className="p-6 rounded-xl border border-border bg-card/50 backdrop-blur space-y-3">
-          <div className="h-12 w-12 rounded-lg bg-accent/20 flex items-center justify-center">
-            <Target className="h-6 w-6 text-accent" />
-          </div>
-          <h3 className="text-xl font-bold">Confidence Scoring</h3>
-          <p className="text-muted-foreground">
-            Every pick includes a confidence score based on verification data and historical
-            performance.
-          </p>
-        </div>
-        <div className="p-6 rounded-xl border border-border bg-card/50 backdrop-blur space-y-3">
-          <div className="h-12 w-12 rounded-lg bg-accent/20 flex items-center justify-center">
-            <Zap className="h-6 w-6 text-accent" />
-          </div>
-          <h3 className="text-xl font-bold">Parlay Builder</h3>
-          <p className="text-muted-foreground">
-            Bundle 2-6 picks with projected combined hit-rate and transparent logic for each
-            selection.
-          </p>
-        </div>
+      {/* CTA Section */}
+      <section className="text-center space-y-6 py-12">
+        <h2 className="text-3xl font-bold tracking-tight">
+          Ready to Find Your Edge?
+        </h2>
+        <p className="text-muted-foreground max-w-xl mx-auto">
+          Join BobbyPicks today and start making data-driven prop bets with confidence.
+        </p>
+        <Button asChild size="lg" className="text-lg px-8">
+          <Link to="/edges">
+            <TrendingUp className="mr-2 h-5 w-5" />
+            Get Started
+          </Link>
+        </Button>
       </section>
     </div>
   );
